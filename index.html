@@ -1,0 +1,2548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>XnFire Sketchfab-Realism Edition — Toyota Hilux 4x4 Cannon.js Simulation + WASD & Mouse Orbit</title>
+    <style>
+        :root {
+            --accent: #ff9900;
+            --accent-glow: rgba(255, 153, 0, 0.45);
+            --hud-bg: rgba(10, 14, 22, 0.78);
+            --hud-border: rgba(255, 255, 255, 0.16);
+            --good: #00ff66;
+            --warn: #ffcc00;
+            --bad: #ff3b30;
+        }
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0a0e17;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            pointer-events: auto;
+        }
+        #css-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 18px;
+            height: 18px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .crosshair::before, .crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.75);
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+        }
+        .crosshair::before {
+            width: 2px;
+            height: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .crosshair::after {
+            height: 2px;
+            width: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* Touch Joystick Zone - Only active on touch input so PC mouse orbit works across 100% of screen */
+        #joystick-zone {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 45%;
+            height: 65%;
+            pointer-events: none;
+            z-index: 90;
+        }
+        body.touch-mode #joystick-zone {
+            pointer-events: auto;
+        }
+
+        /* Mobile Action Buttons */
+        .mobile-btn {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(20, 26, 36, 0.78);
+            border: 2px solid rgba(255, 255, 255, 0.55);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            z-index: 100;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+            transition: transform 0.08s, background-color 0.12s;
+        }
+        .mobile-btn:active, .mobile-btn.active {
+            transform: scale(0.92);
+            background-color: var(--accent);
+            color: #000;
+            border-color: #fff;
+        }
+        #runButton {
+            bottom: 80px;
+            right: 80px;
+            width: 76px;
+            height: 76px;
+            font-size: 15px;
+        }
+        #jumpButton {
+            bottom: 80px;
+            right: 170px;
+            width: 66px;
+            height: 66px;
+            font-size: 13px;
+        }
+        #driveButton {
+            bottom: 170px;
+            right: 82px;
+            width: 74px;
+            height: 74px;
+            font-size: 13px;
+            background-color: rgba(255, 153, 0, 0.9);
+            color: #000;
+            display: none;
+        }
+
+        /* Top Bar */
+        #top-bar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            z-index: 105;
+        }
+        .top-btn {
+            background: var(--hud-bg);
+            color: #f8fafc;
+            border: 1px solid var(--hud-border);
+            padding: 7px 12px;
+            font-family: monospace;
+            font-size: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .top-btn:hover {
+            background: rgba(40, 52, 70, 0.9);
+            border-color: var(--accent);
+        }
+
+        /* Debug & Telemetry Panel */
+        #debug-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--hud-bg);
+            border: 1px solid var(--hud-border);
+            color: #f1f5f9;
+            padding: 10px 12px;
+            font-family: monospace;
+            font-size: 11.5px;
+            line-height: 1.42;
+            border-radius: 8px;
+            z-index: 100;
+            pointer-events: none;
+            backdrop-filter: blur(6px);
+        }
+        .performance-good { color: var(--good); font-weight: bold; }
+        .performance-warning { color: var(--warn); font-weight: bold; }
+        .performance-bad { color: var(--bad); font-weight: bold; }
+
+        /* Controls Info Panel */
+        #controls-info {
+            position: absolute;
+            top: 52px;
+            left: 10px;
+            background: var(--hud-bg);
+            border: 1px solid var(--hud-border);
+            color: #e2e8f0;
+            padding: 10px 12px;
+            font-family: monospace;
+            font-size: 11px;
+            line-height: 1.48;
+            border-radius: 8px;
+            z-index: 100;
+            pointer-events: none;
+            backdrop-filter: blur(6px);
+        }
+        #controls-info b { color: var(--accent); }
+
+        /* Realistic Car Simulation Telemetry Cluster */
+        #vehicle-dashboard {
+            position: absolute;
+            bottom: 106px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 14, 22, 0.9);
+            border: 1.5px solid var(--accent);
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 14px;
+            font-family: monospace;
+            display: none;
+            align-items: center;
+            gap: 20px;
+            z-index: 105;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+            pointer-events: none;
+            backdrop-filter: blur(8px);
+        }
+        .spd-big {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--accent);
+            line-height: 1;
+        }
+        .rpm-track {
+            width: 135px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.14);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        #rpm-bar {
+            width: 15%;
+            height: 100%;
+            background: linear-gradient(90deg, #00ff66, #ffcc00, #ff3b30);
+            transition: width 0.05s;
+        }
+        .susp-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 10px;
+            font-size: 10px;
+            color: #cbd5e1;
+        }
+        .susp-pill {
+            color: #38bdf8;
+            font-weight: bold;
+        }
+
+        /* Interactive Prompt Banner */
+        #interaction-banner {
+            position: absolute;
+            bottom: 62px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 14, 22, 0.92);
+            border: 1.5px solid var(--accent);
+            color: #fff;
+            padding: 8px 18px;
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 20px;
+            z-index: 105;
+            display: none;
+            cursor: pointer;
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        .keyboard-indicator {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--hud-bg);
+            border: 1px solid var(--hud-border);
+            color: white;
+            padding: 7px 16px;
+            font-family: monospace;
+            font-size: 12px;
+            border-radius: 6px;
+            z-index: 100;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .keyboard-indicator { display: none; }
+            #controls-info { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <button id="fullscreen-btn" class="top-btn">Fullscreen</button>
+        <button id="env-btn" class="top-btn">Lighting: Sketchfab Daylight [T]</button>
+        <button id="quality-btn" class="top-btn">Quality: High FPS + PBR</button>
+        <button id="reset-car-btn" class="top-btn">Reset Car [R]</button>
+        <button id="load-assets-btn" class="top-btn">Load Local GLB/JPG</button>
+        <input type="file" id="asset-file-input" multiple accept=".glb,.gltf,.jpg,.jpeg,.png" style="display:none">
+    </div>
+
+    <div class="crosshair"></div>
+    <div id="joystick-zone"></div>
+    <div id="runButton" class="mobile-btn">RUN</div>
+    <div id="jumpButton" class="mobile-btn">JUMP</div>
+    <div id="driveButton" class="mobile-btn">DRIVE</div>
+
+    <div id="vehicle-dashboard">
+        <div>
+            <span class="spd-big" id="hud-speed">0</span> <span style="font-size:11px;">KM/H</span>
+            <div style="font-size:10px;color:#cbd5e1;margin-top:2px;">GEAR: <b id="hud-gear" style="color:#ff9900;">N</b> | <span id="hud-rpm-num">850</span> RPM</div>
+        </div>
+        <div>
+            <div style="font-size:10px;color:#cbd5e1;">ENGINE TORQUE / TURBO</div>
+            <div class="rpm-track"><div id="rpm-bar"></div></div>
+            <div style="font-size:9.5px;color:#94a3b8;margin-top:3px;">4x4 COILOVER SHOCKERS ACTIVE</div>
+        </div>
+        <div class="susp-grid">
+            <div>FL Shocker: <span class="susp-pill" id="susp-fl">100%</span></div>
+            <div>FR Shocker: <span class="susp-pill" id="susp-fr">100%</span></div>
+            <div>RL Shocker: <span class="susp-pill" id="susp-rl">100%</span></div>
+            <div>RR Shocker: <span class="susp-pill" id="susp-rr">100%</span></div>
+        </div>
+    </div>
+
+    <div id="interaction-banner">Press [F] to Drive Toyota Hilux 4x4</div>
+    <div class="keyboard-indicator">Mouse Drag: 360° Orbit | Scroll: Zoom | WASD: Move / Drive | Shift: Sprint / Boost | Space: Jump / Handbrake | F: Enter/Exit Car</div>
+
+    <div id="debug-info">
+        <div>FPS: <span id="fps" class="performance-good">60</span> (<span id="dpiScale">1.0</span>x DPI)</div>
+        <div>Position: <span id="pos">80.00, 0.00, 0.00</span></div>
+        <div>Ground Y: <span id="groundY">0.00</span> | OnGround: <span id="onGround">true</span></div>
+        <div>Velocity: <span id="velocity">0.00</span> m/s | Slope: <span id="slopeAngle">0.0°</span></div>
+        <div>Inside Bldg: <span id="insideBuilding">false</span> | WallHit: <span id="wallCollision">false</span></div>
+        <div>Active Colliders: <span id="activeColliders">0</span> | Cannon Bodies: <span id="cannonBodies">0</span></div>
+        <div>Wheel Spin: <span id="wheelRpm">0 RPM</span> | Camera Dist: <span id="cameraDist">3.25</span></div>
+        <div>Input: <span id="inputMethod">Keyboard + Mouse Orbit</span></div>
+        <div>Hilux Dist: <span id="hiluxDistance">--</span> | TV Dist: <span id="tvDistance">--</span></div>
+    </div>
+
+    <div id="controls-info">
+        <div><b>Mouse Drag</b>: 360° Orbit Camera</div>
+        <div><b>Scroll Wheel</b>: Zoom Camera In/Out</div>
+        <div><b>WASD / Arrows</b>: Move / Drive Hilux</div>
+        <div><b>Shift</b>: Sprint / Turbo Boost</div>
+        <div><b>Space</b>: Jump / Handbrake Drift</div>
+        <div><b>F</b>: Enter / Exit Toyota Hilux</div>
+        <div><b>R</b>: Reset / Flip Hilux Upright</div>
+        <div><b>L</b>: Toggle Headlights | <b>E</b>: Virtual TV</div>
+        <div><b>T</b>: Sketchfab Lighting Preset</div>
+        <div><b>F1 / F2 / F3</b>: Debug / Wireframe / Range</div>
+    </div>
+
+    <div id="css-container"></div>
+
+    <!-- Three.js, Cannon.js Physics, OrbitControls, GLTFLoader, NippleJS, CSS3DRenderer -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/build/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/renderers/CSS3DRenderer.js"></script>
+
+    <script>
+        // =====================================================================
+        // 0. PRE-ALLOCATED SCRATCH VECTORS (Zero Garbage Collection Stalls)
+        // =====================================================================
+        const _v1 = new THREE.Vector3();
+        const _v2 = new THREE.Vector3();
+        const _v3 = new THREE.Vector3();
+        const _v4 = new THREE.Vector3();
+        const _quat1 = new THREE.Quaternion();
+        const _quat2 = new THREE.Quaternion();
+        const _euler1 = new THREE.Euler();
+
+        const cssScene = new THREE.Scene();
+        const cssContainer = document.getElementById('css-container');
+        const cssRenderer = new THREE.CSS3DRenderer();
+        cssRenderer.setSize(window.innerWidth, window.innerHeight);
+        cssContainer.appendChild(cssRenderer.domElement);
+
+        // =====================================================================
+        // 1. ANALYTICAL TERRAIN HEIGHT & NORMAL FUNCTIONS (0ms CPU Cost)
+        // =====================================================================
+        function evaluateTerrainHeight(x, z) {
+            const rawHeight = (
+                Math.sin(x * 0.01) * 3.0 +
+                Math.cos(z * 0.01) * 2.0 +
+                Math.sin(x * 0.005) * 5.0 +
+                Math.cos(z * 0.008) * 3.0
+            ) * 0.5;
+            const dx = (x - 52) / 52;
+            const dz = z / 38;
+            const d2 = dx * dx + dz * dz;
+            const t = Math.min(1.0, Math.max(0.0, (d2 - 0.55) / 0.85));
+            return rawHeight * (t * t * (3 - 2 * t));
+        }
+
+        function evaluateTerrainNormal(x, z, targetNormal) {
+            const eps = 0.35;
+            const hL = evaluateTerrainHeight(x - eps, z);
+            const hR = evaluateTerrainHeight(x + eps, z);
+            const hD = evaluateTerrainHeight(x, z - eps);
+            const hU = evaluateTerrainHeight(x, z + eps);
+            return targetNormal.set(hL - hR, 2.0 * eps, hD - hU).normalize();
+        }
+
+        // Helper: Soft Ambient Occlusion Contact Shadow Texture (Sketchfab Ground Shadow Effect)
+        function createContactShadowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(64, 64, 8, 64, 64, 60);
+            grad.addColorStop(0.0, 'rgba(0, 0, 0, 0.68)');
+            grad.addColorStop(0.55, 'rgba(0, 0, 0, 0.32)');
+            grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 128, 128);
+            const tex = new THREE.CanvasTexture(canvas);
+            return tex;
+        }
+
+        // =====================================================================
+        // 2. SCENE, RENDERER & SKETCHFAB PBR IBL ENVIRONMENT ENGINE (PMREMGenerator)
+        // =====================================================================
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0xc8d6e5, 0.0018);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.15, 550);
+        camera.position.set(80, 3.0, 3.25);
+
+        const renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true,
+            powerPreference: 'high-performance'
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.physicallyCorrectLights = true;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.05;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.setClearColor(0x000000, 0);
+        renderer.domElement.style.pointerEvents = 'auto';
+        document.body.appendChild(renderer.domElement);
+
+        const maxAnisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy() || 4);
+        const contactShadowTex = createContactShadowTexture();
+
+        // OrbitControls — Exact Original Setup
+        const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+        orbitControls.enableDamping = true;
+        orbitControls.dampingFactor = 0.08;
+        orbitControls.minDistance = 2.0;
+        orbitControls.maxDistance = 6.0;
+        orbitControls.enablePan = false;
+        orbitControls.maxPolarAngle = Math.PI / 1.3 - 0.5;
+        orbitControls.target.set(80, 1.5, 0);
+        orbitControls.update();
+
+        // Sketchfab-Style PMREM HDRI Environment & Realistic Skybox System
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        pmremGenerator.compileEquirectangularShader();
+
+        function generateSketchfabIBL(preset = 'day') {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, 512);
+            if (preset === 'day') {
+                // Natural photorealistic outdoor sky + horizon bounce + ground albedo
+                skyGrad.addColorStop(0.0, '#0f2c59');
+                skyGrad.addColorStop(0.24, '#2b6cb0');
+                skyGrad.addColorStop(0.46, '#7fb3d5');
+                skyGrad.addColorStop(0.50, '#e8eef2'); // Bright horizon specular band (makes car paint & metal shine like Sketchfab!)
+                skyGrad.addColorStop(0.54, '#6b7c59');
+                skyGrad.addColorStop(1.0, '#2c3527');
+            } else if (preset === 'sunset') {
+                skyGrad.addColorStop(0.0, '#1a1c3b');
+                skyGrad.addColorStop(0.28, '#5e3c6c');
+                skyGrad.addColorStop(0.46, '#e07a5f');
+                skyGrad.addColorStop(0.50, '#ffd166');
+                skyGrad.addColorStop(0.54, '#4a3b2c');
+                skyGrad.addColorStop(1.0, '#1d1814');
+            } else {
+                // Sketchfab Studio Showroom HDRI (high-contrast softboxes for ultra-clean metallic reflections)
+                skyGrad.addColorStop(0.0, '#1e293b');
+                skyGrad.addColorStop(0.35, '#475569');
+                skyGrad.addColorStop(0.49, '#f8fafc');
+                skyGrad.addColorStop(0.52, '#94a3b8');
+                skyGrad.addColorStop(1.0, '#0f172a');
+            }
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, 1024, 512);
+
+            // Soft volumetric cloud wisps in upper hemisphere
+            ctx.fillStyle = preset === 'sunset' ? 'rgba(255, 215, 170, 0.14)' : 'rgba(255, 255, 255, 0.16)';
+            for (let i = 0; i < 45; i++) {
+                const cx = ((i * 733) % 1024);
+                const cy = 90 + ((i * 197) % 145);
+                const rx = 45 + (i % 5) * 28;
+                const ry = 8 + (i % 3) * 6;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // High-intensity solar disk for crisp specular highlights on PBR metal/paint
+            const sunX = preset === 'sunset' ? 760 : 280;
+            const sunY = preset === 'sunset' ? 235 : 145;
+            const sunGrad = ctx.createRadialGradient(sunX, sunY, 3, sunX, sunY, 120);
+            sunGrad.addColorStop(0.0, 'rgba(255, 255, 245, 1.0)');
+            sunGrad.addColorStop(0.15, 'rgba(255, 245, 210, 0.85)');
+            sunGrad.addColorStop(0.45, 'rgba(255, 220, 160, 0.25)');
+            sunGrad.addColorStop(1.0, 'rgba(255, 200, 120, 0.0)');
+            ctx.fillStyle = sunGrad;
+            ctx.fillRect(0, 0, 1024, 512);
+
+            const equirectTex = new THREE.CanvasTexture(canvas);
+            equirectTex.mapping = THREE.EquirectangularReflectionMapping;
+            equirectTex.encoding = THREE.sRGBEncoding;
+
+            const envRT = pmremGenerator.fromEquirectangular(equirectTex);
+            return { backgroundTex: equirectTex, envMap: envRT.texture };
+        }
+
+        const iblPresets = {
+            day: generateSketchfabIBL('day'),
+            sunset: generateSketchfabIBL('sunset'),
+            studio: generateSketchfabIBL('studio')
+        };
+        scene.background = iblPresets.day.backgroundTex;
+        scene.environment = iblPresets.day.envMap;
+
+        // Also attempt loading the classic Three.js Cube Skybox for background when online
+        let loadedCubeSkybox = null;
+        new THREE.CubeTextureLoader().load([
+            'https://threejs.org/examples/textures/cube/skybox/px.jpg',
+            'https://threejs.org/examples/textures/cube/skybox/nx.jpg',
+            'https://threejs.org/examples/textures/cube/skybox/py.jpg',
+            'https://threejs.org/examples/textures/cube/skybox/ny.jpg',
+            'https://threejs.org/examples/textures/cube/skybox/pz.jpg',
+            'https://threejs.org/examples/textures/cube/skybox/nz.jpg'
+        ], (cubeTex) => {
+            cubeTex.encoding = THREE.sRGBEncoding;
+            loadedCubeSkybox = cubeTex;
+            scene.background = cubeTex;
+            // Generate PMREM radiance map directly from the real skybox cubemap!
+            const cubeEnv = pmremGenerator.fromCubemap(cubeTex);
+            iblPresets.day.envMap = cubeEnv.texture;
+            scene.environment = cubeEnv.texture;
+        }, undefined, () => {});
+
+        // Sketchfab 3-Point + Outdoor Sun Lighting Rig
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+        scene.add(ambientLight);
+
+        const hemiLight = new THREE.HemisphereLight(0xe2f1ff, 0x4a3f32, 0.85);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfff7e6, 2.8);
+        dirLight.position.set(45, 95, 35);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.top = 45;
+        dirLight.shadow.camera.bottom = -45;
+        dirLight.shadow.camera.left = -45;
+        dirLight.shadow.camera.right = 45;
+        dirLight.shadow.camera.near = 5;
+        dirLight.shadow.camera.far = 190;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.bias = -0.0004;
+        scene.add(dirLight);
+        scene.add(dirLight.target);
+
+        let currentLightingPreset = 0; // 0: Sketchfab Daylight, 1: Golden Sunset, 2: Studio Showroom
+        const envBtn = document.getElementById('env-btn');
+        function cycleLightingPreset() {
+            currentLightingPreset = (currentLightingPreset + 1) % 3;
+            if (currentLightingPreset === 0) {
+                envBtn.textContent = 'Lighting: Sketchfab Daylight [T]';
+                scene.background = loadedCubeSkybox || iblPresets.day.backgroundTex;
+                scene.environment = iblPresets.day.envMap;
+                scene.fog.color.setHex(0xc8d6e5);
+                dirLight.intensity = 2.8;
+                dirLight.color.setHex(0xfff7e6);
+                hemiLight.intensity = 0.85;
+                renderer.toneMappingExposure = 1.05;
+            } else if (currentLightingPreset === 1) {
+                envBtn.textContent = 'Lighting: Golden Sunset [T]';
+                scene.background = iblPresets.sunset.backgroundTex;
+                scene.environment = iblPresets.sunset.envMap;
+                scene.fog.color.setHex(0xd49a79);
+                dirLight.intensity = 2.4;
+                dirLight.color.setHex(0xffa95e);
+                hemiLight.intensity = 0.65;
+                renderer.toneMappingExposure = 1.0;
+            } else {
+                envBtn.textContent = 'Lighting: Sketchfab Studio HDRI [T]';
+                scene.background = iblPresets.studio.backgroundTex;
+                scene.environment = iblPresets.studio.envMap;
+                scene.fog.color.setHex(0x334155);
+                dirLight.intensity = 3.1;
+                dirLight.color.setHex(0xffffff);
+                hemiLight.intensity = 1.05;
+                renderer.toneMappingExposure = 1.12;
+            }
+        }
+        envBtn.addEventListener('click', cycleLightingPreset);
+
+        // =====================================================================
+        // 3. CANNON.JS RIGID-BODY COLLISION WORLD + RAMP SURFACE TRACKER
+        // =====================================================================
+        class CannonPhysicsEngine {
+            constructor(scene) {
+                this.scene = scene;
+                this.hasCannon = typeof window.CANNON !== 'undefined';
+                this.dynamicProps = [];
+                this.ramps = [];
+
+                if (this.hasCannon) {
+                    this.world = new CANNON.World();
+                    this.world.broadphase = new CANNON.SAPBroadphase(this.world);
+                    this.world.gravity.set(0, -9.82, 0);
+                    this.world.defaultContactMaterial.friction = 0.2;
+                    this.world.defaultContactMaterial.restitution = 0.05;
+                    this.world.solver.iterations = 6; // Ultra-fast solver for 60+ FPS on low-end devices
+                }
+            }
+
+            addStaticBox(minX, minY, minZ, maxX, maxY, maxZ) {
+                if (!this.hasCannon) return null;
+                const hx = Math.max(0.05, (maxX - minX) * 0.5);
+                const hy = Math.max(0.05, (maxY - minY) * 0.5);
+                const hz = Math.max(0.05, (maxZ - minZ) * 0.5);
+                const body = new CANNON.Body({ mass: 0 });
+                body.addShape(new CANNON.Box(new CANNON.Vec3(hx, hy, hz)));
+                body.position.set((minX + maxX) * 0.5, (minY + maxY) * 0.5, (minZ + maxZ) * 0.5);
+                this.world.addBody(body);
+                document.getElementById('cannonBodies').textContent = this.world.bodies.length;
+                return body;
+            }
+
+            // Evaluate exact ground + ramp elevation under any (x, z) point in O(1) time
+            getSurfaceHeight(x, z) {
+                let h = evaluateTerrainHeight(x, z);
+                for (let i = 0; i < this.ramps.length; i++) {
+                    const r = this.ramps[i];
+                    if (x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ) {
+                        // Ramp slopes upward from maxX (entry) toward minX (launch lip)
+                        const t = 1.0 - (x - r.minX) / (r.maxX - r.minX);
+                        const rampY = r.baseY + t * r.height;
+                        if (rampY > h) h = rampY;
+                    }
+                }
+                return h;
+            }
+
+            spawnInteractivePhysicsObjects() {
+                if (!this.hasCannon) return;
+
+                // Suspension Test Ramp on the road at x = 50..57, z = -8.5..-3.5
+                const rxMin = 50, rxMax = 57, rzMin = -8.5, rzMax = -3.5;
+                const rBaseY = evaluateTerrainHeight(53.5, -6);
+                const rHeight = 1.05;
+                this.ramps.push({ minX: rxMin, maxX: rxMax, minZ: rzMin, maxZ: rzMax, baseY: rBaseY, height: rHeight });
+
+                // Visual wedge mesh for the suspension test ramp
+                const rampLen = rxMax - rxMin;
+                const rampWid = rzMax - rzMin;
+                const rampGeo = new THREE.BoxGeometry(rampLen, 0.25, rampWid);
+                const rampMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.55, metalness: 0.35 });
+                const rampMesh = new THREE.Mesh(rampGeo, rampMat);
+                rampMesh.position.set((rxMin + rxMax) * 0.5, rBaseY + rHeight * 0.5, (rzMin + rzMax) * 0.5);
+                rampMesh.rotation.z = -Math.atan2(rHeight, rampLen);
+                rampMesh.castShadow = true;
+                rampMesh.receiveShadow = true;
+                this.scene.add(rampMesh);
+
+                // Speed bumps (for testing individual wheel shocker compression!)
+                const bumpMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.5, metalness: 0.2 });
+                [64, 61, 58].forEach((bx) => {
+                    const by = evaluateTerrainHeight(bx, -6);
+                    const bump = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 4.5, 12), bumpMat);
+                    bump.rotation.x = Math.PI / 2;
+                    bump.position.set(bx, by + 0.04, -6);
+                    bump.castShadow = true;
+                    bump.receiveShadow = true;
+                    this.scene.add(bump);
+                    this.ramps.push({ minX: bx - 0.22, maxX: bx + 0.22, minZ: -8.25, maxZ: -3.75, baseY: by, height: 0.16 });
+                });
+
+                // Knockable Cannon.js Physics Crates
+                const crateGeo = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+                const crateMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.65, metalness: 0.1 });
+                [[43, -6.6], [43, -5.3], [35, -6.0]].forEach(([cx, cz]) => {
+                    const cy = evaluateTerrainHeight(cx, cz) + 0.55;
+                    const mesh = new THREE.Mesh(crateGeo, crateMat);
+                    mesh.position.set(cx, cy, cz);
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    this.scene.add(mesh);
+
+                    const body = new CANNON.Body({ mass: 25, linearDamping: 0.2, angularDamping: 0.3 });
+                    body.addShape(new CANNON.Box(new CANNON.Vec3(0.55, 0.55, 0.55)));
+                    body.position.set(cx, cy, cz);
+                    body.allowSleep = true;
+                    this.world.addBody(body);
+                    this.dynamicProps.push({ mesh, body });
+                });
+                document.getElementById('cannonBodies').textContent = this.world.bodies.length;
+            }
+
+            step(delta) {
+                if (!this.hasCannon) return;
+                this.world.step(1 / 60, delta, 2);
+
+                for (let i = 0; i < this.dynamicProps.length; i++) {
+                    const p = this.dynamicProps[i];
+                    const th = evaluateTerrainHeight(p.body.position.x, p.body.position.z) + 0.55;
+                    if (p.body.position.y < th) {
+                        p.body.position.y = th;
+                        if (p.body.velocity.y < 0) p.body.velocity.y = 0;
+                    }
+                    p.mesh.position.set(p.body.position.x, p.body.position.y, p.body.position.z);
+                    p.mesh.quaternion.set(p.body.quaternion.x, p.body.quaternion.y, p.body.quaternion.z, p.body.quaternion.w);
+                }
+            }
+        }
+        const cannonEngine = new CannonPhysicsEngine(scene);
+
+        // =====================================================================
+        // 4. ZERO-LAG AABB PHYSICS & COLLISION SYSTEM (0 Raycasts Per Frame!)
+        // =====================================================================
+        class OptimizedPhysicsSystem {
+            constructor() {
+                this.gravity = -16.5;
+                this.colliders = []; // Precomputed world AABBs { minX, minY, minZ, maxX, maxY, maxZ, isStep }
+                this.buildingBounds = [];
+                this.debugMode = false;
+                this.debugMeshes = [];
+                this.wireframeMode = false;
+                this.maxWalkableSlope = 70;
+                this.collisionRange = 18;
+                this.collisionRanges = [10, 18, 30, 45];
+                this.currentRangeIndex = 1;
+            }
+
+            addBuilding(object) {
+                object.updateMatrixWorld(true);
+                const overallBox = new THREE.Box3().setFromObject(object);
+                if (overallBox.isEmpty()) return;
+
+                this.buildingBounds.push({
+                    box: overallBox.clone(),
+                    floorY: overallBox.min.y + 0.08,
+                    object: object
+                });
+
+                const meshBox = new THREE.Box3();
+                object.traverse((child) => {
+                    if (child.isMesh && child.geometry) {
+                        const name = (child.name || '').toLowerCase();
+                        if (name.includes('door')) return;
+                        meshBox.setFromObject(child);
+                        if (meshBox.isEmpty()) return;
+                        const sx = meshBox.max.x - meshBox.min.x;
+                        const sy = meshBox.max.y - meshBox.min.y;
+                        const sz = meshBox.max.z - meshBox.min.z;
+                        if (sx < 0.2 && sz < 0.2) return;
+
+                        const isStep = sy <= 0.65;
+                        this.colliders.push({
+                            minX: meshBox.min.x, minY: meshBox.min.y, minZ: meshBox.min.z,
+                            maxX: meshBox.max.x, maxY: meshBox.max.y, maxZ: meshBox.max.z,
+                            isStep: isStep,
+                            bounds: meshBox.clone()
+                        });
+
+                        if ((sx > 0.5 || sz > 0.5) && sy > 0.35) {
+                            cannonEngine.addStaticBox(
+                                meshBox.min.x, meshBox.min.y, meshBox.min.z,
+                                meshBox.max.x, meshBox.max.y, meshBox.max.z
+                            );
+                        }
+                    }
+                });
+                document.getElementById('activeColliders').textContent = this.colliders.length;
+            }
+
+            updateCollisionSystem(characterPos, deltaTime) {
+                // Precomputed AABBs require zero geometry cloning!
+            }
+
+            getTerrainHeight(x, z) {
+                return cannonEngine.getSurfaceHeight(x, z);
+            }
+
+            isInsideBuilding(position) {
+                for (let i = 0; i < this.buildingBounds.length; i++) {
+                    const b = this.buildingBounds[i];
+                    if (b.box.containsPoint(position)) {
+                        return { inside: true, floorY: b.floorY, building: b.object };
+                    }
+                }
+                return { inside: false, floorY: null, building: null };
+            }
+
+            getGroundInfo(position, radius = 0.4) {
+                const buildingInfo = this.isInsideBuilding(position);
+                const terrainHeight = cannonEngine.getSurfaceHeight(position.x, position.z);
+                let bestY = terrainHeight;
+                const bestNormal = evaluateTerrainNormal(position.x, position.z, _v4).clone();
+
+                const px = position.x, py = position.y, pz = position.z;
+                for (let i = 0; i < this.colliders.length; i++) {
+                    const c = this.colliders[i];
+                    if (px + radius * 0.6 >= c.minX && px - radius * 0.6 <= c.maxX &&
+                        pz + radius * 0.6 >= c.minZ && pz - radius * 0.6 <= c.maxZ) {
+                        if (c.maxY <= py + 0.65 && c.maxY > bestY) {
+                            bestY = c.maxY;
+                            bestNormal.set(0, 1, 0);
+                        }
+                    }
+                }
+
+                const slopeAngle = Math.acos(Math.min(1, Math.abs(bestNormal.y))) * (180 / Math.PI);
+                return {
+                    groundY: bestY,
+                    normal: bestNormal,
+                    slopeAngle: slopeAngle,
+                    canWalk: slopeAngle < this.maxWalkableSlope,
+                    insideBuilding: buildingInfo.inside,
+                    terrainHeight: terrainHeight
+                };
+            }
+
+            resolveCollision(currentPos, targetPos, radius = 0.4, height = 1.8) {
+                const outPos = targetPos.clone();
+                let hasCollision = false;
+                const stepHeight = 0.55;
+
+                for (let i = 0; i < this.colliders.length; i++) {
+                    const c = this.colliders[i];
+                    if (c.maxY <= outPos.y + stepHeight || c.minY >= outPos.y + height) continue;
+
+                    const cx = Math.max(c.minX, Math.min(outPos.x, c.maxX));
+                    const cz = Math.max(c.minZ, Math.min(outPos.z, c.maxZ));
+                    const dx = outPos.x - cx;
+                    const dz = outPos.z - cz;
+                    const d2 = dx * dx + dz * dz;
+                    if (d2 < radius * radius && d2 > 1e-6) {
+                        const d = Math.sqrt(d2);
+                        const push = radius - d;
+                        outPos.x += (dx / d) * push;
+                        outPos.z += (dz / d) * push;
+                        hasCollision = true;
+                    }
+                }
+
+                if (hiluxSystem && !hiluxSystem.isDriving && hiluxSystem.vehicleGroup) {
+                    const hp = hiluxSystem.vehicleGroup.position;
+                    const dist = Math.hypot(outPos.x - hp.x, outPos.z - hp.z);
+                    if (dist < 2.0 && outPos.y < hp.y + 1.9) {
+                        const overlap = 2.0 - dist;
+                        outPos.x += ((outPos.x - hp.x) / Math.max(0.01, dist)) * overlap;
+                        outPos.z += ((outPos.z - hp.z) / Math.max(0.01, dist)) * overlap;
+                        hasCollision = true;
+                    }
+                }
+
+                return { position: outPos, hasCollision };
+            }
+
+            canStepUp(currentPos, targetPos, stepHeight = 0.5) {
+                const gi = this.getGroundInfo(targetPos, 0.35);
+                const diff = gi.groundY - currentPos.y;
+                if (diff > 0.04 && diff <= stepHeight) {
+                    return { canStep: true, stepY: gi.groundY };
+                }
+                return { canStep: false, stepY: currentPos.y };
+            }
+
+            toggleDebug() {
+                this.debugMode = !this.debugMode;
+                this.debugMeshes.forEach(m => scene.remove(m));
+                this.debugMeshes.length = 0;
+                if (this.debugMode) {
+                    this.colliders.forEach(c => {
+                        const h = new THREE.Box3Helper(c.bounds, 0xff3300);
+                        this.debugMeshes.push(h);
+                        scene.add(h);
+                    });
+                }
+            }
+
+            toggleWireframe() {
+                this.wireframeMode = !this.wireframeMode;
+                scene.traverse((child) => {
+                    if (child.isMesh && child.material && child.name !== 'terrain') {
+                        const mats = Array.isArray(child.material) ? child.material : [child.material];
+                        mats.forEach(m => { if (m) m.wireframe = this.wireframeMode; });
+                    }
+                });
+            }
+
+            toggleCollisionRange() {
+                this.currentRangeIndex = (this.currentRangeIndex + 1) % this.collisionRanges.length;
+                this.collisionRange = this.collisionRanges[this.currentRangeIndex];
+            }
+        }
+        const physicsSystem = new OptimizedPhysicsSystem();
+        cannonEngine.spawnInteractivePhysicsObjects();
+
+        // =====================================================================
+        // 5. VIRTUAL TV SYSTEM (Zero-Lag On-Demand YouTube Activation)
+        // =====================================================================
+        class VirtualTVSystem {
+            constructor(scene) {
+                this.scene = scene;
+                this.tvGroup = new THREE.Group();
+                const tvY = evaluateTerrainHeight(80, -10);
+                this.tvPosition = new THREE.Vector3(80, tvY + 1, -10);
+                this.interactionDistance = 6.0;
+                this.isPlayerNear = false;
+                this.iframeMounted = false;
+                this.isPlaying = false;
+                this.initializeTV();
+            }
+
+            initializeTV() {
+                const standMat = new THREE.MeshStandardMaterial({ color: 0x22262e, metalness: 0.85, roughness: 0.2 });
+                const stand = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.5, 0.3, 12), standMat);
+                stand.position.y = 0.15;
+                stand.castShadow = true;
+                this.tvGroup.add(stand);
+
+                const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 1.5, 10), standMat);
+                neck.position.y = 1.05;
+                this.tvGroup.add(neck);
+
+                const frameMat = new THREE.MeshStandardMaterial({ color: 0x0b0e14, metalness: 0.75, roughness: 0.25 });
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(6, 4, 0.45), frameMat);
+                frame.position.y = 1.8;
+                frame.castShadow = true;
+                this.tvGroup.add(frame);
+
+                // Crisp standby screen texture so the game runs at 120+ FPS without background YouTube iframe lag,
+                // and mounts the live YouTube player on press [E]!
+                const scrCanvas = document.createElement('canvas');
+                scrCanvas.width = 512;
+                scrCanvas.height = 256;
+                const sctx = scrCanvas.getContext('2d');
+                const sgrad = sctx.createLinearGradient(0, 0, 512, 256);
+                sgrad.addColorStop(0, '#0f172a');
+                sgrad.addColorStop(1, '#1e3a8a');
+                sctx.fillStyle = sgrad;
+                sctx.fillRect(0, 0, 512, 256);
+                sctx.fillStyle = '#38bdf8';
+                sctx.font = 'bold 26px monospace';
+                sctx.textAlign = 'center';
+                sctx.fillText('XnFire Smart 4K Virtual TV', 256, 115);
+                sctx.fillStyle = '#f8fafc';
+                sctx.font = '18px monospace';
+                sctx.fillText('Walk Close & Press [E] to Toggle YouTube Stream', 256, 155);
+                const scrTex = new THREE.CanvasTexture(scrCanvas);
+                scrTex.encoding = THREE.sRGBEncoding;
+
+                this.screenMaterial = new THREE.MeshBasicMaterial({
+                    map: scrTex,
+                    side: THREE.DoubleSide
+                });
+                this.screen = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 3.4), this.screenMaterial);
+                this.screen.position.set(0, 1.8, 0.24);
+                this.tvGroup.add(this.screen);
+
+                this.tvGroup.position.copy(this.tvPosition);
+                this.tvGroup.rotation.y = Math.PI;
+                this.scene.add(this.tvGroup);
+            }
+
+            update(playerPosition) {
+                const distance = playerPosition.distanceTo(this.tvPosition);
+                this.isPlayerNear = distance <= this.interactionDistance;
+                document.getElementById('tvDistance').textContent = distance.toFixed(1) + 'm';
+                return this.iframeMounted && this.isPlaying && distance <= 28.0;
+            }
+
+            interact() {
+                if (!this.isPlayerNear) return;
+                if (!this.iframeMounted) {
+                    this.iframeMounted = true;
+                    this.isPlaying = true;
+                    // Switch screen mesh to alpha hole & mount CSS3D YouTube player
+                    this.screenMaterial.map = null;
+                    this.screenMaterial.color.setHex(0x000000);
+                    this.screenMaterial.transparent = true;
+                    this.screenMaterial.opacity = 0;
+                    this.screenMaterial.blending = THREE.NoBlending;
+                    this.screenMaterial.needsUpdate = true;
+
+                    const videoId = '8-B6ryuBkCM';
+                    const div = document.createElement('div');
+                    div.style.width = '854px';
+                    div.style.height = '480px';
+                    div.style.backgroundColor = '#000';
+                    div.innerHTML = `<iframe id="tv-iframe" width="854" height="480" src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&enablejsapi=1" frameborder="0" allow="autoplay; encrypted-media" style="width:100%;height:100%;"></iframe>`;
+                    this.cssObject = new THREE.CSS3DObject(div);
+                    this.cssObject.scale.set(5.4 / 854, 3.4 / 480, 1);
+                    this.cssObject.position.set(this.tvPosition.x, this.tvPosition.y + 1.8, this.tvPosition.z - 0.24);
+                    this.cssObject.rotation.y = Math.PI;
+                    cssScene.add(this.cssObject);
+                } else {
+                    const iframe = document.getElementById('tv-iframe');
+                    if (iframe && iframe.contentWindow) {
+                        const cmd = this.isPlaying ? 'pauseVideo' : 'playVideo';
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: '' }), '*');
+                        this.isPlaying = !this.isPlaying;
+                    }
+                }
+            }
+
+            getTVGroup() {
+                return this.tvGroup;
+            }
+        }
+
+        // =====================================================================
+        // 6. INPUT MANAGER (WASD + Mouse Orbit + Touch Joystick)
+        // =====================================================================
+        class InputManager {
+            constructor() {
+                this.keyboardVector = { x: 0, y: 0 };
+                this.joystickVector = { x: 0, y: 0 };
+                this.keyboardRunning = false;
+                this.mobileRunning = false;
+                this.keys = {};
+                this.joystickActive = false;
+                this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                this.jumpPressed = false;
+
+                if (this.isMobile) document.body.classList.add('touch-mode');
+                window.addEventListener('pointerdown', (e) => {
+                    if (e.pointerType === 'mouse') document.body.classList.remove('touch-mode');
+                    else if (e.pointerType === 'touch') document.body.classList.add('touch-mode');
+                }, { capture: true, passive: true });
+
+                this.setupKeyboardControls();
+                this.setupMobileControls();
+            }
+
+            setupKeyboardControls() {
+                document.addEventListener('keydown', (event) => {
+                    this.keys[event.code] = true;
+                    this.updateKeyboardVector();
+
+                    if (event.code === 'KeyE' && !event.repeat && virtualTVSystem) virtualTVSystem.interact();
+                    if (event.code === 'KeyF' && !event.repeat && hiluxSystem) hiluxSystem.enterOrExit(characterController);
+                    if (event.code === 'KeyR' && !event.repeat && hiluxSystem) hiluxSystem.resetVehicleNearPlayer(characterController);
+                    if (event.code === 'KeyL' && !event.repeat && hiluxSystem) hiluxSystem.toggleHeadlights();
+                    if (event.code === 'KeyT' && !event.repeat) cycleLightingPreset();
+                    if (event.code === 'Space') this.jumpPressed = true;
+
+                    if (event.key === 'F1') { event.preventDefault(); physicsSystem.toggleDebug(); }
+                    if (event.key === 'F2') { event.preventDefault(); physicsSystem.toggleWireframe(); }
+                    if (event.key === 'F3') { event.preventDefault(); physicsSystem.toggleCollisionRange(); }
+                });
+
+                document.addEventListener('keyup', (event) => {
+                    this.keys[event.code] = false;
+                    this.updateKeyboardVector();
+                    if (event.code === 'Space') this.jumpPressed = false;
+                });
+            }
+
+            updateKeyboardVector() {
+                let x = 0, y = 0;
+                if (this.keys['KeyW'] || this.keys['ArrowUp']) y += 1;
+                if (this.keys['KeyS'] || this.keys['ArrowDown']) y -= 1;
+                if (this.keys['KeyA'] || this.keys['ArrowLeft']) x -= 1;
+                if (this.keys['KeyD'] || this.keys['ArrowRight']) x += 1;
+                if (x !== 0 && y !== 0) {
+                    const inv = 1 / Math.sqrt(x * x + y * y);
+                    x *= inv;
+                    y *= inv;
+                }
+                this.keyboardVector = { x, y };
+                this.keyboardRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight']);
+            }
+
+            setupMobileControls() {
+                const joystickZone = document.getElementById('joystick-zone');
+                if (window.nipplejs) {
+                    this.joystickManager = nipplejs.create({
+                        zone: joystickZone,
+                        mode: 'dynamic',
+                        position: { left: '25%', top: '75%' },
+                        color: '#ff9900',
+                        size: 115,
+                        threshold: 0.08,
+                        fadeTime: 200,
+                        multitouch: true,
+                        maxNumberOfNipples: 1,
+                        restJoystick: true,
+                        restOpacity: 0.5
+                    });
+                    this.joystickManager.on('start', () => {
+                        this.joystickActive = true;
+                        document.getElementById('inputMethod').textContent = 'Touch + Orbit';
+                    });
+                    this.joystickManager.on('move', (evt, data) => {
+                        if (data && data.vector) {
+                            this.joystickVector = { x: data.vector.x, y: data.vector.y };
+                        }
+                    });
+                    this.joystickManager.on('end', () => {
+                        this.joystickActive = false;
+                        this.joystickVector = { x: 0, y: 0 };
+                    });
+                }
+
+                const bindBtn = (id, onDown, onUp) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const start = (e) => { e.preventDefault(); e.stopPropagation(); el.classList.add('active'); onDown(); };
+                    const end = (e) => { e.preventDefault(); e.stopPropagation(); el.classList.remove('active'); if (onUp) onUp(); };
+                    el.addEventListener('mousedown', start);
+                    el.addEventListener('mouseup', end);
+                    el.addEventListener('touchstart', start, { passive: false });
+                    el.addEventListener('touchend', end, { passive: false });
+                };
+                bindBtn('runButton', () => { this.mobileRunning = true; }, () => { this.mobileRunning = false; });
+                bindBtn('jumpButton', () => { this.jumpPressed = true; }, () => { this.jumpPressed = false; });
+                bindBtn('driveButton', () => { if (hiluxSystem) hiluxSystem.enterOrExit(characterController); });
+            }
+
+            getMovementVector() {
+                if (this.joystickActive) {
+                    document.getElementById('inputMethod').textContent = 'Touch + Orbit';
+                    return this.joystickVector;
+                }
+                document.getElementById('inputMethod').textContent = 'Keyboard + Mouse Orbit';
+                return this.keyboardVector;
+            }
+
+            isRunning() {
+                return this.joystickActive ? this.mobileRunning : this.keyboardRunning;
+            }
+
+            isMoving() {
+                const v = this.getMovementVector();
+                return Math.abs(v.x) > 0.08 || Math.abs(v.y) > 0.08;
+            }
+        }
+
+        // Fullscreen Button
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+            else if (document.exitFullscreen) document.exitFullscreen();
+        });
+        document.addEventListener('fullscreenchange', () => {
+            fullscreenBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+        });
+
+        // Performance Monitor & Quality Scaler
+        class PerformanceMonitor {
+            constructor() {
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                this.fps = 60;
+                this.mode = 'high';
+                this.dpi = Math.min(window.devicePixelRatio || 1, 1.35);
+                this.fpsEl = document.getElementById('fps');
+                this.dpiEl = document.getElementById('dpiScale');
+                this.dpiEl.textContent = this.dpi.toFixed(2);
+            }
+
+            cycleQuality() {
+                const modes = ['high', 'low', 'ultra'];
+                this.mode = modes[(modes.indexOf(this.mode) + 1) % modes.length];
+                const btn = document.getElementById('quality-btn');
+                if (this.mode === 'low') {
+                    this.dpi = 0.8;
+                    renderer.shadowMap.enabled = false;
+                    btn.textContent = 'Quality: Low-End Turbo';
+                } else if (this.mode === 'ultra') {
+                    this.dpi = Math.min(window.devicePixelRatio || 1, 1.85);
+                    renderer.shadowMap.enabled = true;
+                    btn.textContent = 'Quality: Sketchfab Ultra';
+                } else {
+                    this.dpi = Math.min(window.devicePixelRatio || 1, 1.35);
+                    renderer.shadowMap.enabled = true;
+                    btn.textContent = 'Quality: High FPS + PBR';
+                }
+                renderer.setPixelRatio(this.dpi);
+                this.dpiEl.textContent = this.dpi.toFixed(2);
+            }
+
+            update() {
+                this.frameCount++;
+                if (this.frameCount % 30 === 0) {
+                    const now = performance.now();
+                    const elapsed = now - this.lastTime;
+                    this.fps = Math.min(240, Math.round(30 / Math.max(0.001, elapsed / 1000)));
+                    this.lastTime = now;
+                    this.fpsEl.textContent = this.fps;
+                    this.fpsEl.className = this.fps >= 50 ? 'performance-good' : (this.fps >= 30 ? 'performance-warning' : 'performance-bad');
+                }
+            }
+        }
+        const performanceMonitor = new PerformanceMonitor();
+        document.getElementById('quality-btn').addEventListener('click', () => performanceMonitor.cycleQuality());
+
+        // =====================================================================
+        // 7. TERRAIN WITH GRASS01_BIGUV.JPG + PAVED TEST TRACK ROAD
+        // =====================================================================
+        function createFallbackGrassTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#3a5223';
+            ctx.fillRect(0, 0, 512, 512);
+            const shades = ['#2d4219', '#46632b', '#527334', '#33491e', '#5c6e3b'];
+            for (let i = 0; i < 14000; i++) {
+                ctx.fillStyle = shades[i % shades.length];
+                const x = ((i * 9301 + 49297) % 233280) / 233280 * 512;
+                const y = ((i * 49297 + 9301) % 233280) / 233280 * 512;
+                ctx.fillRect(x, y, 2, 4);
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(55, 55);
+            tex.encoding = THREE.sRGBEncoding;
+            return tex;
+        }
+
+        let terrainMaterial;
+        function createTerrain() {
+            const WIDTH = 600;
+            const LENGTH = 600;
+            const geometry = new THREE.PlaneGeometry(WIDTH, LENGTH, 96, 96);
+            geometry.rotateX(-Math.PI / 2);
+            const vertices = geometry.attributes.position.array;
+            for (let i = 0; i < vertices.length; i += 3) {
+                vertices[i + 1] = evaluateTerrainHeight(vertices[i], vertices[i + 2]);
+            }
+            geometry.attributes.position.needsUpdate = true;
+            geometry.computeVertexNormals();
+
+            terrainMaterial = new THREE.MeshStandardMaterial({
+                map: createFallbackGrassTexture(),
+                roughness: 0.86,
+                metalness: 0.04,
+                envMapIntensity: 0.65
+            });
+
+            new THREE.TextureLoader().load('Grass01_BigUV.jpg', (grassTex) => {
+                grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+                grassTex.repeat.set(55, 55);
+                grassTex.anisotropy = maxAnisotropy;
+                grassTex.encoding = THREE.sRGBEncoding;
+                terrainMaterial.map = grassTex;
+                terrainMaterial.needsUpdate = true;
+            }, undefined, () => {});
+
+            const terrainMesh = new THREE.Mesh(geometry, terrainMaterial);
+            terrainMesh.receiveShadow = true;
+            terrainMesh.name = 'terrain';
+            scene.add(terrainMesh);
+
+            // Asphalt Driving Strip for testing Hilux suspension & speed bumps
+            const roadGeo = new THREE.PlaneGeometry(140, 6.4, 36, 2);
+            roadGeo.rotateX(-Math.PI / 2);
+            const rVerts = roadGeo.attributes.position.array;
+            for (let i = 0; i < rVerts.length; i += 3) {
+                rVerts[i + 1] = evaluateTerrainHeight(rVerts[i] + 45, rVerts[i + 2] - 6) + 0.025;
+            }
+            roadGeo.computeVertexNormals();
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x26292e, roughness: 0.72, metalness: 0.12 });
+            const road = new THREE.Mesh(roadGeo, roadMat);
+            road.position.set(45, 0, -6);
+            road.receiveShadow = true;
+            scene.add(road);
+
+            return terrainMesh;
+        }
+        const terrain = createTerrain();
+
+        // =====================================================================
+        // 8. COMPACT SUB-GEOMETRY EXTRACTOR (Zero Vertex Duplication for GLB Wheels!)
+        // =====================================================================
+        function extractCompactSubGeometry(sourceGeom, triangleVertexIndices, offsetX, offsetY, offsetZ) {
+            const oldPos = sourceGeom.attributes.position.array;
+            const oldNorm = sourceGeom.attributes.normal ? sourceGeom.attributes.normal.array : null;
+            const oldUV = sourceGeom.attributes.uv ? sourceGeom.attributes.uv.array : null;
+
+            const vertexMap = new Map();
+            const newIndices = [];
+            const newPos = [];
+            const newNorm = [];
+            const newUV = [];
+            let nextIndex = 0;
+
+            for (let i = 0; i < triangleVertexIndices.length; i++) {
+                const oldIdx = triangleVertexIndices[i];
+                let mappedIdx = vertexMap.get(oldIdx);
+                if (mappedIdx === undefined) {
+                    mappedIdx = nextIndex++;
+                    vertexMap.set(oldIdx, mappedIdx);
+                    newPos.push(
+                        oldPos[oldIdx * 3] - offsetX,
+                        oldPos[oldIdx * 3 + 1] - offsetY,
+                        oldPos[oldIdx * 3 + 2] - offsetZ
+                    );
+                    if (oldNorm) {
+                        newNorm.push(
+                            oldNorm[oldIdx * 3],
+                            oldNorm[oldIdx * 3 + 1],
+                            oldNorm[oldIdx * 3 + 2]
+                        );
+                    }
+                    if (oldUV) {
+                        newUV.push(
+                            oldUV[oldIdx * 2],
+                            oldUV[oldIdx * 2 + 1]
+                        );
+                    }
+                }
+                newIndices.push(mappedIdx);
+            }
+
+            const subGeom = new THREE.BufferGeometry();
+            subGeom.setAttribute('position', new THREE.Float32BufferAttribute(newPos, 3));
+            if (oldNorm) subGeom.setAttribute('normal', new THREE.Float32BufferAttribute(newNorm, 3));
+            if (oldUV) subGeom.setAttribute('uv', new THREE.Float32BufferAttribute(newUV, 2));
+            subGeom.setIndex(newIndices);
+            subGeom.computeBoundingSphere();
+            return subGeom;
+        }
+
+        // =====================================================================
+        // 9. REALISTIC TOYOTA HILUX 4x4 CAR SIMULATION
+        //    - Exact 0.405m GLB Wheel Extraction (NO Fake Oversized Wheels!)
+        //    - Real 3D Coilover Shock Absorbers ("Shockers"), Springs & Control Arms
+        //    - 4-Corner Independent Spring-Damper Physics + Cannon.js Collisions
+        // =====================================================================
+        class ToyotaHiluxSimulation {
+            constructor(scene, cannonEngine) {
+                this.scene = scene;
+                this.cannonEngine = cannonEngine;
+
+                this.vehicleGroup = new THREE.Group();
+                this.chassisGroup = new THREE.Group();
+                this.vehicleGroup.add(this.chassisGroup);
+
+                const startX = 74, startZ = -6;
+                const startY = cannonEngine.getSurfaceHeight(startX, startZ);
+                this.vehicleGroup.position.set(startX, startY, startZ);
+                this.vehicleGroup.rotation.y = -Math.PI / 2;
+
+                // EXACT Wheel Coordinates verified from `toyota hilux 002.glb` vertex plot:
+                // Tire Diameter = 0.810m -> Radius = 0.405m, Axle Center Y = 0.405m
+                // Empty Wheel-Arch Air Gap = r in [0.415m .. 0.465m] -> Cut Radius = 0.422m!
+                this.wheelRadius = 0.405;
+                this.wheelCutRadius = 0.422;
+                this.wheelSpecs = [
+                    { name: 'FL', x: -0.825, y: 0.405, z:  1.620, xmin: -1.00, xmax: -0.66, front: true,  id: 'susp-fl' },
+                    { name: 'FR', x:  0.825, y: 0.405, z:  1.620, xmin:  0.66, xmax:  1.00, front: true,  id: 'susp-fr' },
+                    { name: 'RL', x: -0.825, y: 0.405, z: -1.407, xmin: -1.00, xmax: -0.66, front: false, id: 'susp-rl' },
+                    { name: 'RR', x:  0.825, y: 0.405, z: -1.407, xmin:  0.66, xmax:  1.00, front: false, id: 'susp-rr' }
+                ];
+
+                this.wheelSteerPivots = [];
+                this.wheelSpinners = [];
+                this.fallbackWheels = [];
+                this.shockers = []; // 3D Coilover Shock Absorbers & Control Arms for each wheel!
+                this.wheelSpinAngles = [0, 0, 0, 0];
+                this.wheelCompression = [0, 0, 0, 0]; // meters of vertical shocker travel
+
+                // Driving Simulation State
+                this.isDriving = false;
+                this.velocity = new THREE.Vector3(0, 0, 0);
+                this.forwardSpeed = 0; // m/s
+                this.yaw = -Math.PI / 2;
+                this.yawRate = 0;
+                this.chassisPitch = 0;
+                this.chassisPitchVel = 0;
+                this.chassisRoll = 0;
+                this.chassisRollVel = 0;
+                this.chassisHeave = 0;
+                this.chassisHeaveVel = 0;
+
+                this.steeringAngle = 0;
+                this.maxSteerAngle = 0.54; // ~31 degrees
+                this.engineRpm = 850;
+                this.currentGear = 1;
+                this.headlightsOn = true;
+                this.interactDistance = 4.8;
+                this.isPlayerNear = false;
+
+                this.buildContactShadowAndShockerSuspension();
+                this.initCannonRigidBody(startX, startY, startZ);
+                this.loadHiluxGLB('toyota hilux 002.glb');
+                this.scene.add(this.vehicleGroup);
+            }
+
+            // Build Ground AO Shadow + 4 Articulated 3D Coilover Shock Absorbers ("Shockers") + Wheel Mounts
+            buildContactShadowAndShockerSuspension() {
+                // 1. Sketchfab-style Ground Ambient Occlusion Contact Shadow under the Hilux
+                const shadowGeo = new THREE.PlaneGeometry(2.6, 5.8);
+                shadowGeo.rotateX(-Math.PI / 2);
+                const shadowMat = new THREE.MeshBasicMaterial({
+                    map: contactShadowTex,
+                    transparent: true,
+                    opacity: 0.85,
+                    depthWrite: false
+                });
+                this.contactShadow = new THREE.Mesh(shadowGeo, shadowMat);
+                this.contactShadow.position.y = 0.02;
+                this.vehicleGroup.add(this.contactShadow);
+
+                // Minimal placeholder chassis shown ONLY while the 17MB GLB file is loading from disk
+                this.loadingPlaceholder = new THREE.Group();
+                const phMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.5, roughness: 0.25 });
+                const phBox = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.55, 4.95), phMat);
+                phBox.position.set(0, 0.72, 0);
+                this.loadingPlaceholder.add(phBox);
+                this.chassisGroup.add(this.loadingPlaceholder);
+
+                // Shared PBR Materials for the 3D Coilover Shock Absorbers ("Shockers"), Springs & Control Arms
+                const strutBodyMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.78, roughness: 0.22 }); // Gold anodized reservoir
+                const pistonMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.95, roughness: 0.08 });    // Chrome piston rod
+                const coilSpringMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.45, roughness: 0.32 }); // Crimson heavy-duty coil spring
+                const armMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.65, roughness: 0.45 });       // Forged steel control arm & axle
+                const rotorMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.28 });     // Brake disc rotor
+                const caliperMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.4, roughness: 0.35 });    // Red Brembo brake caliper
+
+                // Solid Front & Rear Differential Axle Beams under the frame
+                const frontAxle = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.45, 10), armMat);
+                frontAxle.rotation.z = Math.PI / 2;
+                frontAxle.position.set(0, 0.405, 1.620);
+                this.chassisGroup.add(frontAxle);
+
+                const rearAxle = frontAxle.clone();
+                rearAxle.position.set(0, 0.405, -1.407);
+                this.chassisGroup.add(rearAxle);
+
+                const fallbackTireGeo = new THREE.CylinderGeometry(this.wheelRadius, this.wheelRadius, 0.29, 24);
+                fallbackTireGeo.rotateZ(Math.PI / 2);
+                const fallbackTireMat = new THREE.MeshStandardMaterial({ color: 0x1c1f24, roughness: 0.75 });
+
+                this.wheelSpecs.forEach((ws, idx) => {
+                    const sideSign = ws.x < 0 ? -1 : 1; // -1 Left, +1 Right
+
+                    // A) 3D COILOVER SHOCK ABSORBER ("SHOCKER") ASSEMBLY inside each wheel arch!
+                    // Positioned just inboard of the tire (x = ±0.62) so you can see the shocker & red coil spring
+                    // compressing and extending inside the wheel well!
+                    const shockerGroup = new THREE.Group();
+                    const shockX = sideSign * 0.61;
+                    const topMountY = 0.86;
+                    shockerGroup.position.set(shockX, topMountY, ws.z);
+
+                    // Upper anodized shock cylinder
+                    const upperCylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.24, 12), strutBodyMat);
+                    upperCylinder.position.y = -0.12;
+                    shockerGroup.add(upperCylinder);
+
+                    // Chrome lower piston shaft
+                    const pistonRod = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.44, 10), pistonMat);
+                    pistonRod.position.y = -0.24;
+                    shockerGroup.add(pistonRod);
+
+                    // Helical Red Coilover Spring (7 stacked torus coils that compress/extend with suspension!)
+                    const springGroup = new THREE.Group();
+                    springGroup.position.y = -0.08;
+                    const coilTorusGeo = new THREE.TorusGeometry(0.058, 0.013, 8, 16);
+                    coilTorusGeo.rotateX(Math.PI / 2 - 0.12);
+                    for (let c = 0; c < 7; c++) {
+                        const coil = new THREE.Mesh(coilTorusGeo, coilSpringMat);
+                        coil.position.y = -c * 0.048;
+                        springGroup.add(coil);
+                    }
+                    shockerGroup.add(springGroup);
+
+                    // Lower Control Arm / Wishbone linking frame to wheel hub
+                    const controlArm = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.035, 0.12), armMat);
+                    controlArm.position.set(sideSign * 0.08, -0.44, 0);
+                    shockerGroup.add(controlArm);
+
+                    this.chassisGroup.add(shockerGroup);
+                    this.shockers.push({ group: shockerGroup, springGroup, controlArm, topMountY, baseRestLen: 0.455 });
+
+                    // B) WHEEL STEERING PIVOT & ROLLING SPINNER
+                    const steerPivot = new THREE.Group();
+                    steerPivot.position.set(ws.x, ws.y, ws.z);
+
+                    // Stationary Brake Disc Shield & Red Brake Caliper (attached to steering knuckle, doesn't spin with tire)
+                    const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.15, 0.09), caliperMat);
+                    caliper.position.set(-sideSign * 0.06, 0.05, -0.16);
+                    steerPivot.add(caliper);
+
+                    const brakeRotor = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.21, 0.21, 0.03, 18).rotateZ(Math.PI / 2),
+                        rotorMat
+                    );
+                    brakeRotor.position.set(-sideSign * 0.05, 0, 0);
+                    steerPivot.add(brakeRotor);
+
+                    // Spinner Group (rotates around X-axis as the wheel rolls!)
+                    const spinner = new THREE.Group();
+                    steerPivot.add(spinner);
+
+                    // Temporary fallback wheel (hidden the instant toyota hilux 002.glb loads!)
+                    const fbWheel = new THREE.Mesh(fallbackTireGeo, fallbackTireMat);
+                    fbWheel.castShadow = true;
+                    spinner.add(fbWheel);
+
+                    this.vehicleGroup.add(steerPivot);
+                    this.wheelSteerPivots.push(steerPivot);
+                    this.wheelSpinners.push(spinner);
+                    this.fallbackWheels.push(fbWheel);
+                });
+
+                // Headlight SpotLight
+                this.headlightSpot = new THREE.SpotLight(0xfff8e7, 3.5, 48, Math.PI / 4, 0.45, 1.5);
+                this.headlightSpot.position.set(0, 1.10, 2.55);
+                this.headlightSpot.target.position.set(0, 0.1, 18);
+                this.chassisGroup.add(this.headlightSpot);
+                this.chassisGroup.add(this.headlightSpot.target);
+            }
+
+            // Initialize Cannon.js Rigid-Body for Building & Crate Collisions
+            initCannonRigidBody(startX, startY, startZ) {
+                if (!this.cannonEngine || !this.cannonEngine.hasCannon) return;
+                this.chassisBody = new CANNON.Body({
+                    mass: 1650,
+                    linearDamping: 0.05,
+                    angularDamping: 0.4
+                });
+                this.chassisBody.addShape(new CANNON.Box(new CANNON.Vec3(0.92, 0.45, 2.50)), new CANNON.Vec3(0, 0.85, 0));
+                this.chassisBody.position.set(startX, startY, startZ);
+                const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
+                this.chassisBody.quaternion.set(q.x, q.y, q.z, q.w);
+                this.cannonEngine.world.addBody(this.chassisBody);
+            }
+
+            loadHiluxGLB(url) {
+                const gltfLoader = new THREE.GLTFLoader();
+                gltfLoader.load(url, (gltf) => {
+                    this.applyAndSplitLoadedGLB(gltf.scene);
+                }, undefined, () => {
+                    if (url.includes(' ')) {
+                        gltfLoader.load(encodeURI(url), (gltf) => {
+                            this.applyAndSplitLoadedGLB(gltf.scene);
+                        }, undefined, () => {});
+                    }
+                });
+            }
+
+            // Extract the exact 4 wheels from `toyota hilux 002.glb` with ZERO fake oversized primitive shapes
+            // and calibrate Sketchfab-grade PBR metallic/roughness/normalMap materials!
+            applyAndSplitLoadedGLB(glbScene) {
+                let sourceMesh = null;
+                glbScene.traverse((child) => {
+                    if (child.isMesh && child.geometry && !sourceMesh) {
+                        sourceMesh = child;
+                    }
+                });
+                if (!sourceMesh) return;
+
+                const geom = sourceMesh.geometry.clone();
+                geom.rotateX(Math.PI / 2);
+                geom.computeBoundingBox();
+
+                const bb = geom.boundingBox;
+                const size = new THREE.Vector3();
+                bb.getSize(size);
+                const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+                const scaleFactor = 5.30 / maxDim;
+
+                const cxBox = 0.5 * (bb.min.x + bb.max.x);
+                const czBox = 0.5 * (bb.min.z + bb.max.z);
+                const minY = bb.min.y;
+
+                geom.translate(-cxBox, -minY, -czBox);
+                geom.scale(scaleFactor, scaleFactor, scaleFactor);
+                geom.computeVertexNormals();
+
+                // Sketchfab PBR Material Calibration on the GLB's native textures!
+                const srcMat = sourceMesh.material;
+                if (srcMat.map) {
+                    srcMat.map.anisotropy = maxAnisotropy;
+                    srcMat.map.encoding = THREE.sRGBEncoding;
+                    srcMat.map.needsUpdate = true;
+                }
+                if (srcMat.normalMap) {
+                    srcMat.normalMap.anisotropy = maxAnisotropy;
+                    srcMat.normalScale = new THREE.Vector2(1.25, 1.25);
+                }
+
+                // Body Material: Sketchfab Automotive Gloss/Satin PBR
+                const chassisMat = srcMat.clone();
+                chassisMat.roughness = 0.26;
+                chassisMat.metalness = 0.35;
+                chassisMat.envMapIntensity = 1.45;
+                chassisMat.needsUpdate = true;
+
+                // Wheel Material: Natural Tire Rubber & Alloy Rim sheen
+                const wheelMat = srcMat.clone();
+                wheelMat.roughness = 0.48;
+                wheelMat.metalness = 0.22;
+                wheelMat.envMapIntensity = 1.15;
+                wheelMat.needsUpdate = true;
+
+                const posAttr = geom.attributes.position;
+                const indexAttr = geom.index;
+
+                if (indexAttr && posAttr) {
+                    const indices = indexAttr.array;
+                    const posArr = posAttr.array;
+                    const chassisTriIndices = [];
+                    const wheelTriIndices = [[], [], [], []];
+
+                    for (let i = 0; i < indices.length; i += 3) {
+                        const i0 = indices[i], i1 = indices[i + 1], i2 = indices[i + 2];
+                        const tx = (posArr[i0 * 3] + posArr[i1 * 3] + posArr[i2 * 3]) / 3;
+                        const ty = (posArr[i0 * 3 + 1] + posArr[i1 * 3 + 1] + posArr[i2 * 3 + 1]) / 3;
+                        const tz = (posArr[i0 * 3 + 2] + posArr[i1 * 3 + 2] + posArr[i2 * 3 + 2]) / 3;
+
+                        let matchedWheel = -1;
+                        if (ty <= 0.827) {
+                            for (let w = 0; w < 4; w++) {
+                                const ws = this.wheelSpecs[w];
+                                if (tx >= ws.xmin && tx <= ws.xmax) {
+                                    const r = Math.hypot(tz - ws.z, ty - ws.y);
+                                    if (r <= this.wheelCutRadius) {
+                                        matchedWheel = w;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (matchedWheel !== -1) {
+                            wheelTriIndices[matchedWheel].push(i0, i1, i2);
+                        } else {
+                            chassisTriIndices.push(i0, i1, i2);
+                        }
+                    }
+
+                    // 1. Build Compact Chassis Mesh (Zero duplicated wheel vertices!)
+                    const chassisSubGeom = extractCompactSubGeometry(geom, chassisTriIndices, 0, 0, 0);
+                    const chassisMesh = new THREE.Mesh(chassisSubGeom, chassisMat);
+                    chassisMesh.castShadow = true;
+                    chassisMesh.receiveShadow = true;
+
+                    if (this.loadingPlaceholder) this.loadingPlaceholder.visible = false;
+                    if (this.loadedChassisMesh) this.chassisGroup.remove(this.loadedChassisMesh);
+                    this.loadedChassisMesh = chassisMesh;
+                    this.chassisGroup.add(chassisMesh);
+
+                    // 2. Build 4 Compact, Pure GLB Wheel Meshes (NO fake oversized primitive wheels!)
+                    for (let w = 0; w < 4; w++) {
+                        if (wheelTriIndices[w].length > 0) {
+                            const ws = this.wheelSpecs[w];
+                            const wSubGeom = extractCompactSubGeometry(geom, wheelTriIndices[w], ws.x, ws.y, ws.z);
+                            const wMesh = new THREE.Mesh(wSubGeom, wheelMat);
+                            wMesh.castShadow = true;
+                            wMesh.receiveShadow = true;
+
+                            // Hide fallback wheel and mount ONLY the real GLB wheel!
+                            if (this.fallbackWheels[w]) {
+                                this.fallbackWheels[w].visible = false;
+                            }
+                            this.wheelSpinners[w].add(wMesh);
+                        }
+                    }
+                }
+            }
+
+            toggleHeadlights() {
+                this.headlightsOn = !this.headlightsOn;
+                if (this.headlightSpot) this.headlightSpot.visible = this.headlightsOn;
+            }
+
+            resetVehicleNearPlayer(characterController) {
+                const refPos = this.isDriving
+                    ? this.vehicleGroup.position
+                    : (characterController ? characterController.model.position : this.vehicleGroup.position);
+                const rx = refPos.x + (this.isDriving ? 0 : 3.5);
+                const rz = refPos.z;
+                const ry = this.cannonEngine.getSurfaceHeight(rx, rz);
+
+                this.vehicleGroup.position.set(rx, ry, rz);
+                this.forwardSpeed = 0;
+                this.velocity.set(0, 0, 0);
+                this.chassisPitch = 0;
+                this.chassisRoll = 0;
+                this.chassisHeave = 0;
+                if (this.chassisBody) {
+                    this.chassisBody.position.set(rx, ry, rz);
+                    this.chassisBody.velocity.set(0, 0, 0);
+                    this.chassisBody.angularVelocity.set(0, 0, 0);
+                }
+            }
+
+            enterOrExit(characterController) {
+                if (!characterController) return;
+                const dashboard = document.getElementById('vehicle-dashboard');
+                if (this.isDriving) {
+                    this.isDriving = false;
+                    dashboard.style.display = 'none';
+                    _v1.set(-1.95, 0, 0.2).applyQuaternion(this.vehicleGroup.quaternion);
+                    const exitX = this.vehicleGroup.position.x + _v1.x;
+                    const exitZ = this.vehicleGroup.position.z + _v1.z;
+                    const exitY = this.cannonEngine.getSurfaceHeight(exitX, exitZ);
+                    characterController.model.position.set(exitX, exitY, exitZ);
+                    characterController.model.visible = true;
+                    characterController.updateCameraTarget(0, 0, 0);
+                } else if (this.isPlayerNear) {
+                    this.isDriving = true;
+                    dashboard.style.display = 'flex';
+                    characterController.model.visible = false;
+                    const oldPos = characterController.model.position.clone();
+                    characterController.model.position.copy(this.vehicleGroup.position);
+                    characterController.updateCameraTarget(
+                        this.vehicleGroup.position.x - oldPos.x,
+                        this.vehicleGroup.position.z - oldPos.z,
+                        this.vehicleGroup.position.y - oldPos.y,
+                        1.75
+                    );
+                }
+            }
+
+            update(delta, inputManager, characterController) {
+                const pos = this.vehicleGroup.position;
+                const banner = document.getElementById('interaction-banner');
+                const driveBtn = document.getElementById('driveButton');
+
+                const moveVec = inputManager.getMovementVector();
+                const isBoost = inputManager.isRunning();
+                const handbrake = inputManager.jumpPressed;
+
+                const throttle = this.isDriving ? moveVec.y : 0; // +1 W, -1 S
+                const steerInput = this.isDriving ? -moveVec.x : 0; // +1 A (Left), -1 D (Right)
+
+                // 1. Speed-Sensitive Ackermann Steering
+                const speedRatio = Math.min(1.0, Math.abs(this.forwardSpeed) / 28.0);
+                const maxSteerAtSpeed = this.maxSteerAngle * (1.0 - speedRatio * 0.52);
+                this.steeringAngle = THREE.MathUtils.lerp(this.steeringAngle, steerInput * maxSteerAtSpeed, 11 * delta);
+
+                // Ackermann Left/Right Front Wheel Angles (inner wheel turns slightly sharper)
+                const steerFL = this.steeringAngle * (this.steeringAngle > 0 ? 1.08 : 0.92);
+                const steerFR = this.steeringAngle * (this.steeringAngle < 0 ? 1.08 : 0.92);
+                this.wheelSteerPivots[0].rotation.y = steerFL;
+                this.wheelSteerPivots[1].rotation.y = steerFR;
+
+                // 2. Engine Torque, 5-Speed Gearbox, Braking & Longitudinal Acceleration
+                const prevSpeed = this.forwardSpeed;
+                const maxFwd = isBoost ? 29.0 : 21.5; // up to ~105 km/h with boost
+                const maxRev = -9.0;
+
+                if (this.isDriving) {
+                    if (handbrake) {
+                        const brakeDecel = 22.0 * delta;
+                        if (Math.abs(this.forwardSpeed) > brakeDecel) {
+                            this.forwardSpeed -= Math.sign(this.forwardSpeed) * brakeDecel;
+                        } else {
+                            this.forwardSpeed = 0;
+                        }
+                    } else if (Math.abs(throttle) > 0.05) {
+                        if (throttle > 0) {
+                            const accel = this.forwardSpeed < 0 ? 26.0 : (isBoost ? 16.5 : 11.5);
+                            this.forwardSpeed = Math.min(maxFwd, this.forwardSpeed + throttle * accel * delta);
+                        } else {
+                            const accel = this.forwardSpeed > 0 ? 26.0 : 8.5;
+                            this.forwardSpeed = Math.max(maxRev, this.forwardSpeed + throttle * accel * delta);
+                        }
+                    } else {
+                        // Natural engine & rolling resistance
+                        const drag = 4.2 * delta;
+                        if (Math.abs(this.forwardSpeed) > drag) {
+                            this.forwardSpeed -= Math.sign(this.forwardSpeed) * drag;
+                        } else {
+                            this.forwardSpeed = 0;
+                        }
+                    }
+                } else {
+                    this.forwardSpeed = THREE.MathUtils.lerp(this.forwardSpeed, 0, 8 * delta);
+                }
+
+                const longitudinalG = (this.forwardSpeed - prevSpeed) / Math.max(0.001, delta);
+
+                // 3. Yaw Turning & Lateral G-Force
+                const wheelbase = 3.027; // 1.620 - (-1.407) = 3.027m exact Hilux wheelbase!
+                if (Math.abs(this.forwardSpeed) > 0.08) {
+                    const turnRadiusInv = Math.tan(this.steeringAngle) / wheelbase;
+                    const driftFactor = (handbrake && Math.abs(this.forwardSpeed) > 4.0) ? 1.45 : 1.0;
+                    this.yawRate = this.forwardSpeed * turnRadiusInv * driftFactor;
+                    this.yaw += this.yawRate * delta;
+                } else {
+                    this.yawRate = 0;
+                }
+                const lateralG = this.forwardSpeed * this.yawRate;
+
+                // 4. Advance Vehicle World Position & Check Building/Obstacle Collisions
+                const oldX = pos.x, oldY = pos.y, oldZ = pos.z;
+                const fwdX = Math.sin(this.yaw);
+                const fwdZ = Math.cos(this.yaw);
+                const rightX = Math.cos(this.yaw);
+                const rightZ = -Math.sin(this.yaw);
+
+                let nextX = Math.max(-285, Math.min(285, pos.x + fwdX * this.forwardSpeed * delta));
+                let nextZ = Math.max(-285, Math.min(285, pos.z + fwdZ * this.forwardSpeed * delta));
+
+                _v1.set(nextX, pos.y, nextZ);
+                const col = physicsSystem.resolveCollision(pos, _v1, 1.35, 1.9);
+                if (col.hasCollision) {
+                    this.forwardSpeed *= 0.35;
+                }
+                pos.x = col.position.x;
+                pos.z = col.position.z;
+
+                // 5. 4-CORNER INDEPENDENT WHEEL RAYCASTING & COILOVER SHOCKER PHYSICS!
+                // Sample exact ground/ramp height under each of the 4 tires (FL, FR, RL, RR)
+                const wheelGroundHeights = [0, 0, 0, 0];
+                for (let w = 0; w < 4; w++) {
+                    const ws = this.wheelSpecs[w];
+                    const wx = pos.x + rightX * ws.x + fwdX * ws.z;
+                    const wz = pos.z + rightZ * ws.x + fwdZ * ws.z;
+                    wheelGroundHeights[w] = this.cannonEngine.getSurfaceHeight(wx, wz);
+                }
+
+                // Average ground plane + terrain pitch & roll angles from the 4 contact patches
+                const avgGroundY = 0.25 * (wheelGroundHeights[0] + wheelGroundHeights[1] + wheelGroundHeights[2] + wheelGroundHeights[3]);
+                const frontAvgY = 0.5 * (wheelGroundHeights[0] + wheelGroundHeights[1]);
+                const rearAvgY = 0.5 * (wheelGroundHeights[2] + wheelGroundHeights[3]);
+                const leftAvgY = 0.5 * (wheelGroundHeights[0] + wheelGroundHeights[2]);
+                const rightAvgY = 0.5 * (wheelGroundHeights[1] + wheelGroundHeights[3]);
+
+                const terrainPitch = Math.atan2(rearAvgY - frontAvgY, wheelbase);
+                const terrainRoll = Math.atan2(leftAvgY - rightAvgY, 1.65);
+
+                // Vertical Heave Spring-Damper (allows airborne jumps off the stunt ramp & soft landings!)
+                const targetHeave = avgGroundY - pos.y;
+                if (pos.y > avgGroundY + 0.04 || this.chassisHeaveVel > 0.5) {
+                    // Airborne or rebounding
+                    this.chassisHeaveVel += (-18.5) * delta;
+                    pos.y += this.chassisHeaveVel * delta;
+                    if (pos.y <= avgGroundY) {
+                        pos.y = avgGroundY;
+                        // Shocker landing compression impulse!
+                        this.chassisPitchVel += 0.4;
+                        this.chassisHeaveVel = 0;
+                    }
+                } else {
+                    pos.y = avgGroundY;
+                    this.chassisHeaveVel = 0;
+                }
+
+                // Dynamic Weight-Transfer Pitch (Squat on acceleration, Nose-Dive on braking) & Roll (Cornering lean)
+                const targetDynamicPitch = THREE.MathUtils.clamp(-longitudinalG * 0.0042, -0.065, 0.065);
+                const targetDynamicRoll = THREE.MathUtils.clamp(lateralG * 0.0055, -0.085, 0.085);
+
+                // Spring-damper integration for chassis pitch & roll
+                const pitchSpringForce = (targetDynamicPitch - this.chassisPitch) * 65.0 - this.chassisPitchVel * 11.0;
+                this.chassisPitchVel += pitchSpringForce * delta;
+                this.chassisPitch += this.chassisPitchVel * delta;
+
+                const rollSpringForce = (targetDynamicRoll - this.chassisRoll) * 70.0 - this.chassisRollVel * 12.0;
+                this.chassisRollVel += rollSpringForce * delta;
+                this.chassisRoll += this.chassisRollVel * delta;
+
+                // Orient vehicleGroup to terrain normal + yaw
+                _euler1.set(terrainPitch, this.yaw, terrainRoll, 'YXZ');
+                this.vehicleGroup.quaternion.setFromEuler(_euler1);
+
+                // Orient chassisGroup on its suspension springs (pitch, roll, and shocker heave)
+                this.chassisGroup.rotation.x = this.chassisPitch;
+                this.chassisGroup.rotation.z = this.chassisRoll;
+
+                // Sync Cannon.js rigid body so it pushes dynamic physics crates out of the way!
+                if (this.chassisBody) {
+                    this.chassisBody.position.set(pos.x, pos.y, pos.z);
+                    this.chassisBody.quaternion.set(
+                        this.vehicleGroup.quaternion.x,
+                        this.vehicleGroup.quaternion.y,
+                        this.vehicleGroup.quaternion.z,
+                        this.vehicleGroup.quaternion.w
+                    );
+                    this.chassisBody.velocity.set(fwdX * this.forwardSpeed, this.chassisHeaveVel, fwdZ * this.forwardSpeed);
+                }
+
+                // 6. UPDATE ALL 4 WHEELS & 3D COILOVER SHOCKERS ("SHOCKERS")!
+                // Angular velocity omega = v / R (withexact R = 0.405m)
+                const angularVel = (this.forwardSpeed / this.wheelRadius) +
+                    ((this.isDriving && Math.abs(this.forwardSpeed) < 1.2) ? throttle * 3.5 : 0);
+                const wheelRpm = Math.round(Math.abs(angularVel) * 60 / (Math.PI * 2));
+                document.getElementById('wheelRpm').textContent = wheelRpm + ' RPM';
+
+                for (let w = 0; w < 4; w++) {
+                    const ws = this.wheelSpecs[w];
+                    // Calculate corner vertical displacement from terrain bumps + chassis pitch/roll
+                    const cornerBump = wheelGroundHeights[w] - pos.y;
+                    const pitchOffset = -Math.sin(this.chassisPitch) * ws.z;
+                    const rollOffset = Math.sin(this.chassisRoll) * ws.x;
+                    const shockerDeflection = THREE.MathUtils.clamp(cornerBump - pitchOffset - rollOffset, -0.14, 0.16);
+                    this.wheelCompression[w] = THREE.MathUtils.lerp(this.wheelCompression[w], shockerDeflection, 18 * delta);
+
+                    // Move wheel up/down in wheel arch
+                    this.wheelSteerPivots[w].position.set(ws.x, ws.y + this.wheelCompression[w], ws.z);
+
+                    // Compress/Extend the 3D Coilover Shocker Spring & pivot the Lower Control Arm!
+                    const shocker = this.shockers[w];
+                    if (shocker) {
+                        const currentStrutLen = Math.max(0.20, shocker.baseRestLen - this.wheelCompression[w]);
+                        const scaleRatio = currentStrutLen / shocker.baseRestLen;
+                        shocker.springGroup.scale.y = scaleRatio;
+                        shocker.controlArm.position.y = -currentStrutLen + 0.02;
+                        shocker.controlArm.rotation.z = (ws.x < 0 ? 1 : -1) * (this.wheelCompression[w] * 1.4);
+
+                        const compPct = Math.round(THREE.MathUtils.clamp((1.0 - this.wheelCompression[w] / 0.18) * 100, 35, 135));
+                        const el = document.getElementById(ws.id);
+                        if (el) el.textContent = compPct + '%';
+                    }
+
+                    // Spin the wheel around its X axle!
+                    const isRearLocked = handbrake && !ws.front;
+                    if (!isRearLocked) {
+                        this.wheelSpinAngles[w] = (this.wheelSpinAngles[w] + angularVel * delta) % (Math.PI * 200);
+                    }
+                    this.wheelSpinners[w].rotation.x = this.wheelSpinAngles[w];
+                }
+
+                // 7. Update 5-Speed Gearbox, RPM Telemetry & 3rd-Person Mouse Orbit Camera
+                const kmh = Math.round(Math.abs(this.forwardSpeed) * 3.6);
+                if (this.forwardSpeed < -0.3) {
+                    this.currentGear = 'R';
+                    this.engineRpm = Math.round(950 + Math.min(4800, kmh * 135));
+                } else if (kmh === 0 && Math.abs(throttle) < 0.05) {
+                    this.currentGear = 'N';
+                    this.engineRpm = 850;
+                } else {
+                    const gearnum = kmh < 20 ? 1 : (kmh < 42 ? 2 : (kmh < 68 ? 3 : (kmh < 92 ? 4 : 5)));
+                    this.currentGear = 'D' + gearnum;
+                    const gearMinKmh = [0, 0, 18, 38, 62, 85][gearnum];
+                    const gearSpan = [22, 22, 26, 30, 32, 40][gearnum];
+                    this.engineRpm = Math.round(1400 + ((kmh - gearMinKmh) / gearSpan) * 4400 + Math.abs(throttle) * 450);
+                }
+
+                if (this.isDriving && characterController) {
+                    characterController.model.position.copy(pos);
+                    characterController.updateCameraTarget(pos.x - oldX, pos.z - oldZ, pos.y - oldY, 1.75);
+                    characterController.updateCameraDistance(delta, 5.2, 1.75);
+                    characterController.updateDebugInfo();
+
+                    document.getElementById('velocity').textContent = Math.abs(this.forwardSpeed).toFixed(2);
+                    document.getElementById('hud-speed').textContent = kmh;
+                    document.getElementById('hud-gear').textContent = this.currentGear;
+                    document.getElementById('hud-rpm-num').textContent = this.engineRpm;
+                    document.getElementById('rpm-bar').style.width = Math.min(100, Math.round((this.engineRpm / 6500) * 100)) + '%';
+                    document.getElementById('hiluxDistance').textContent = 'DRIVING';
+                    banner.style.display = 'block';
+                    banner.textContent = `Toyota Hilux 4x4 (${kmh} km/h | ${this.currentGear} | ${this.engineRpm} RPM) — [WASD] Drive | [Space] Drift | [F] Exit`;
+                    driveBtn.style.display = 'flex';
+                    driveBtn.textContent = 'EXIT';
+                } else if (characterController) {
+                    const dist = characterController.model.position.distanceTo(pos);
+                    this.isPlayerNear = dist <= this.interactDistance;
+                    document.getElementById('hiluxDistance').textContent = dist.toFixed(2) + 'm';
+                    if (this.isPlayerNear) {
+                        banner.style.display = 'block';
+                        banner.textContent = 'Press [F] or Tap DRIVE to Enter Toyota Hilux 4x4';
+                        driveBtn.style.display = 'flex';
+                        driveBtn.textContent = 'DRIVE';
+                    } else {
+                        banner.style.display = 'none';
+                        driveBtn.style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // 10. CHARACTER CONTROLLER (Original WASD + Mouse Orbit Camera System)
+        // =====================================================================
+        class CharacterController {
+            constructor(model, mixer, animationsMap, orbitControl, camera, currentAction) {
+                this.model = model;
+                this.mixer = mixer;
+                this.animationsMap = animationsMap;
+                this.orbitControl = orbitControl;
+                this.camera = camera;
+                this.currentAction = currentAction;
+                this.walkDirection = new THREE.Vector3();
+                this.rotateAngle = new THREE.Vector3(0, 1, 0);
+                this.rotateQuarternion = new THREE.Quaternion();
+                this.cameraTarget = new THREE.Vector3();
+                this.fadeDuration = 0.2;
+                this.runVelocity = 6.5;
+                this.walkVelocity = 2.6;
+                this.jumpSpeed = 7.2;
+                this.velocity = new THREE.Vector3(0, 0, 0);
+                this.characterRadius = 0.4;
+                this.characterHeight = 1.8;
+                this.isGrounded = true;
+                this.groundY = 0;
+                this.currentGroundInfo = null;
+                this.insideBuilding = false;
+                this.hasWallCollision = false;
+
+                this.idealCameraDistance = 3.25;
+                this.minCameraDistance = 0.4;
+                this.maxCameraDistance = 6.0;
+                this.currentCameraDistance = this.idealCameraDistance;
+                this.cameraAdjustSpeed = 20;
+                this.insideBuildingCameraDistance = 3.0;
+
+                this.animationsMap.forEach((value, key) => {
+                    if (key === currentAction) value.play();
+                });
+                this.updateCameraTarget(0, 0, 0);
+            }
+
+            update(delta, inputManager) {
+                if (hiluxSystem && hiluxSystem.isDriving) return;
+
+                const movementVector = inputManager.getMovementVector();
+                const isRunning = inputManager.isRunning();
+                const directionPressed = inputManager.isMoving();
+
+                let play = 'Idle';
+                if (directionPressed && isRunning) play = 'Run';
+                else if (directionPressed) play = 'Walk';
+
+                if (this.currentAction !== play) {
+                    const toPlay = this.animationsMap.get(play);
+                    const current = this.animationsMap.get(this.currentAction);
+                    if (current) current.fadeOut(this.fadeDuration);
+                    if (toPlay) toPlay.reset().fadeIn(this.fadeDuration).play();
+                    this.currentAction = play;
+                }
+
+                this.mixer.update(delta);
+                if (this.model.userData.isProceduralRig) {
+                    animateProceduralRig(this.model, play, performance.now() * 0.001);
+                }
+
+                this.updatePhysics(delta, movementVector, isRunning, directionPressed);
+                this.updateCameraDistance(delta);
+            }
+
+            updatePhysics(delta, movementVector, isRunning, directionPressed) {
+                const currentPos = this.model.position.clone();
+                this.currentGroundInfo = physicsSystem.getGroundInfo(currentPos, this.characterRadius);
+                this.groundY = this.currentGroundInfo.groundY;
+                this.isGrounded = Math.abs(currentPos.y - this.groundY) < 0.22 && this.velocity.y <= 0;
+                this.insideBuilding = this.currentGroundInfo.insideBuilding;
+
+                if (inputManager.jumpPressed && this.isGrounded) {
+                    this.velocity.y = this.jumpSpeed;
+                    this.isGrounded = false;
+                    inputManager.jumpPressed = false;
+                }
+
+                if (!this.isGrounded) {
+                    this.velocity.y += physicsSystem.gravity * delta;
+                } else {
+                    this.velocity.y = 0;
+                    this.model.position.y = THREE.MathUtils.lerp(this.model.position.y, this.groundY, 0.25);
+                }
+
+                if (directionPressed) {
+                    const reversedMovementVector = { x: movementVector.x, y: -movementVector.y };
+                    const angleYCameraDirection = Math.atan2(
+                        (this.camera.position.x - this.model.position.x),
+                        (this.camera.position.z - this.model.position.z)
+                    );
+                    const directionOffset = Math.atan2(-reversedMovementVector.x, -reversedMovementVector.y);
+                    this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset);
+                    this.model.quaternion.rotateTowards(this.rotateQuarternion, 0.2);
+
+                    this.camera.getWorldDirection(this.walkDirection);
+                    this.walkDirection.y = 0;
+                    this.walkDirection.normalize();
+                    this.walkDirection.applyAxisAngle(this.rotateAngle, directionOffset);
+
+                    const velocity = isRunning ? this.runVelocity : this.walkVelocity;
+                    const moveX = this.walkDirection.x * velocity * delta;
+                    const moveZ = this.walkDirection.z * velocity * delta;
+
+                    let targetPos = new THREE.Vector3(
+                        currentPos.x + moveX,
+                        currentPos.y + this.velocity.y * delta,
+                        currentPos.z + moveZ
+                    );
+
+                    const stepInfo = physicsSystem.canStepUp(currentPos, targetPos, 0.45);
+                    if (stepInfo.canStep) targetPos.y = stepInfo.stepY;
+
+                    const collision = physicsSystem.resolveCollision(
+                        currentPos,
+                        targetPos,
+                        this.characterRadius,
+                        this.characterHeight
+                    );
+                    const newPos = collision.position;
+                    this.hasWallCollision = collision.hasCollision;
+                    const newGroundInfo = physicsSystem.getGroundInfo(newPos, this.characterRadius);
+
+                    if (newGroundInfo.canWalk || this.isGrounded) {
+                        this.model.position.x = newPos.x;
+                        this.model.position.z = newPos.z;
+                        let finalY = newPos.y;
+                        if (this.isGrounded || stepInfo.canStep) {
+                            finalY = newGroundInfo.groundY;
+                            this.model.position.y = finalY;
+                        } else {
+                            if (finalY <= newGroundInfo.groundY) {
+                                finalY = newGroundInfo.groundY;
+                                this.isGrounded = true;
+                                this.velocity.y = 0;
+                            }
+                            this.model.position.y = finalY;
+                        }
+                        this.updateCameraTarget(
+                            this.model.position.x - currentPos.x,
+                            this.model.position.z - currentPos.z,
+                            this.model.position.y - currentPos.y
+                        );
+                    } else {
+                        this.hasWallCollision = true;
+                    }
+                } else {
+                    if (!this.isGrounded) {
+                        const oldY = this.model.position.y;
+                        this.model.position.y += this.velocity.y * delta;
+                        if (this.model.position.y <= this.groundY) {
+                            this.model.position.y = this.groundY;
+                            this.isGrounded = true;
+                            this.velocity.y = 0;
+                        }
+                        this.updateCameraTarget(0, 0, this.model.position.y - oldY);
+                    }
+                    this.hasWallCollision = false;
+                }
+                this.updateDebugInfo();
+            }
+
+            updateCameraDistance(delta, customTargetDistance = null, targetHeightOffset = 1.5) {
+                let targetDistance = customTargetDistance !== null ? customTargetDistance : this.idealCameraDistance;
+                if (customTargetDistance === null && this.insideBuilding) {
+                    targetDistance = this.insideBuildingCameraDistance;
+                }
+
+                const characterHead = _v1.set(
+                    this.model.position.x,
+                    this.model.position.y + targetHeightOffset,
+                    this.model.position.z
+                );
+                const cameraDirection = _v2.copy(this.camera.position).sub(characterHead);
+                const currentRawDist = cameraDirection.length();
+                if (currentRawDist > 0.0001) {
+                    cameraDirection.divideScalar(currentRawDist);
+                } else {
+                    cameraDirection.set(0, 0.3, 1).normalize();
+                }
+
+                this.currentCameraDistance = THREE.MathUtils.lerp(
+                    this.currentCameraDistance,
+                    targetDistance,
+                    this.cameraAdjustSpeed * delta
+                );
+                this.orbitControl.minDistance = this.minCameraDistance;
+                this.orbitControl.maxDistance = customTargetDistance ? 8.5 : this.maxCameraDistance;
+                this.orbitControl.target = this.cameraTarget;
+                this.orbitControl.object.position.copy(characterHead).addScaledVector(
+                    cameraDirection,
+                    this.currentCameraDistance
+                );
+                this.orbitControl.update();
+                document.getElementById('cameraDist').textContent = this.currentCameraDistance.toFixed(2);
+            }
+
+            updateCameraTarget(moveX, moveZ, moveY = 0, heightOffset = 1.5) {
+                this.camera.position.x += moveX;
+                this.camera.position.y += moveY;
+                this.camera.position.z += moveZ;
+
+                this.cameraTarget.x = this.model.position.x;
+                this.cameraTarget.y = this.model.position.y + heightOffset;
+                this.cameraTarget.z = this.model.position.z;
+                this.orbitControl.target = this.cameraTarget;
+            }
+
+            updateDebugInfo() {
+                const pos = this.model.position;
+                document.getElementById('pos').textContent =
+                    `${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}`;
+                document.getElementById('groundY').textContent = this.groundY.toFixed(2);
+                const spd = inputManager.isMoving() ? (inputManager.isRunning() ? this.runVelocity : this.walkVelocity) : this.velocity.length();
+                document.getElementById('velocity').textContent = spd.toFixed(2);
+                document.getElementById('onGround').textContent = this.isGrounded;
+                document.getElementById('insideBuilding').textContent = this.insideBuilding;
+                document.getElementById('wallCollision').textContent = this.hasWallCollision;
+                if (this.currentGroundInfo) {
+                    document.getElementById('slopeAngle').textContent =
+                        this.currentGroundInfo.slopeAngle.toFixed(1) + '°';
+                }
+            }
+        }
+
+        // =====================================================================
+        // 11. INITIALIZE SYSTEMS & LOAD MODELS (mks.glb, Hilux, Buildings)
+        // =====================================================================
+        const inputManager = new InputManager();
+        const virtualTVSystem = new VirtualTVSystem(scene);
+        physicsSystem.addBuilding(virtualTVSystem.getTVGroup());
+
+        const hiluxSystem = new ToyotaHiluxSimulation(scene, cannonEngine);
+
+        document.getElementById('interaction-banner').addEventListener('click', () => {
+            if (hiluxSystem) hiluxSystem.enterOrExit(characterController);
+        });
+        document.getElementById('reset-car-btn').addEventListener('click', () => {
+            if (hiluxSystem) hiluxSystem.resetVehicleNearPlayer(characterController);
+        });
+
+        function createArticulatedCharacterFallback() {
+            const root = new THREE.Group();
+            root.userData.isProceduralRig = true;
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.55 });
+            const shirtMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.65 });
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.72 });
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.56, 0.24), shirtMat);
+            torso.position.y = 1.12;
+            torso.castShadow = true;
+            root.add(torso);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.26, 0.24), skinMat);
+            head.position.y = 1.56;
+            head.castShadow = true;
+            root.add(head);
+
+            const limbGeo = new THREE.BoxGeometry(0.14, 0.68, 0.14);
+            const leftLeg = new THREE.Mesh(limbGeo, pantsMat);
+            leftLeg.position.set(-0.11, 0.44, 0);
+            leftLeg.castShadow = true;
+            root.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(limbGeo, pantsMat);
+            rightLeg.position.set(0.11, 0.44, 0);
+            rightLeg.castShadow = true;
+            root.add(rightLeg);
+
+            const armGeo = new THREE.BoxGeometry(0.12, 0.56, 0.12);
+            const leftArm = new THREE.Mesh(armGeo, shirtMat);
+            leftArm.position.set(-0.29, 1.10, 0);
+            leftArm.castShadow = true;
+            root.add(leftArm);
+
+            const rightArm = new THREE.Mesh(armGeo, shirtMat);
+            rightArm.position.set(0.29, 1.10, 0);
+            rightArm.castShadow = true;
+            root.add(rightArm);
+
+            root.userData.limbs = { leftLeg, rightLeg, leftArm, rightArm, torso };
+            return root;
+        }
+
+        function animateProceduralRig(root, action, timeSec) {
+            const limbs = root.userData.limbs;
+            if (!limbs) return;
+            if (action === 'Idle') {
+                limbs.leftLeg.rotation.x = THREE.MathUtils.lerp(limbs.leftLeg.rotation.x, 0, 0.15);
+                limbs.rightLeg.rotation.x = THREE.MathUtils.lerp(limbs.rightLeg.rotation.x, 0, 0.15);
+                limbs.leftArm.rotation.x = THREE.MathUtils.lerp(limbs.leftArm.rotation.x, 0, 0.15);
+                limbs.rightArm.rotation.x = THREE.MathUtils.lerp(limbs.rightArm.rotation.x, 0, 0.15);
+            } else {
+                const freq = action === 'Run' ? 11.5 : 7.0;
+                const amp = action === 'Run' ? 0.72 : 0.42;
+                limbs.leftLeg.rotation.x = Math.sin(timeSec * freq) * amp;
+                limbs.rightLeg.rotation.x = -Math.sin(timeSec * freq) * amp;
+                limbs.leftArm.rotation.x = -Math.sin(timeSec * freq) * (amp * 0.75);
+                limbs.rightArm.rotation.x = Math.sin(timeSec * freq) * (amp * 0.75);
+            }
+        }
+
+        const loader = new THREE.GLTFLoader();
+        let characterController;
+
+        const initialModel = createArticulatedCharacterFallback();
+        initialModel.position.set(80, evaluateTerrainHeight(80, 0), 0);
+        scene.add(initialModel);
+        const initialMixer = new THREE.AnimationMixer(initialModel);
+        const initialAnims = new Map([
+            ['Idle', initialMixer.clipAction(new THREE.AnimationClip('Idle', -1, []))],
+            ['Walk', initialMixer.clipAction(new THREE.AnimationClip('Walk', -1, []))],
+            ['Run', initialMixer.clipAction(new THREE.AnimationClip('Run', -1, []))]
+        ]);
+        characterController = new CharacterController(initialModel, initialMixer, initialAnims, orbitControls, camera, 'Idle');
+
+        // Load mks.glb character model with Sketchfab PBR calibration & contact shadow
+        function loadCharacterModel(url) {
+            loader.load(url, (gltf) => {
+                const model = gltf.scene;
+                const currentPos = characterController ? characterController.model.position.clone() : new THREE.Vector3(80, 0, 0);
+                const currentQuat = characterController ? characterController.model.quaternion.clone() : new THREE.Quaternion();
+
+                // Prune duplicate unskinned armatures ('Run' & 'Walk' empty nodes in mks.glb)
+                const unusedNodes = [];
+                model.children.forEach((child) => {
+                    if ((child.name === 'Run' || child.name === 'Walk') && !child.getObjectByProperty('isSkinnedMesh', true)) {
+                        unusedNodes.push(child);
+                    }
+                });
+                unusedNodes.forEach(n => model.remove(n));
+
+                model.traverse((object) => {
+                    if (object.isMesh) {
+                        object.castShadow = true;
+                        object.receiveShadow = true;
+                        object.frustumCulled = false;
+
+                        const materials = Array.isArray(object.material) ? object.material : [object.material];
+                        materials.forEach((material) => {
+                            if (!material) return;
+                            if (material.map) material.map.anisotropy = maxAnisotropy;
+                            if (material.normalMap) material.normalMap.anisotropy = maxAnisotropy;
+                            const mName = (material.name || '').toLowerCase();
+                            if (mName.includes('glasses')) {
+                                material.metalness = 0.85;
+                                material.roughness = 0.15;
+                                material.envMapIntensity = 1.5;
+                            } else {
+                                if ('metalness' in material) material.metalness = Math.min(material.metalness, 0.08);
+                                if ('roughness' in material) material.roughness = Math.max(material.roughness, 0.52);
+                                material.envMapIntensity = 1.05;
+                            }
+                            if ('emissiveIntensity' in material) material.emissiveIntensity = 0;
+                            if (material.emissive) material.emissive.setRGB(0, 0, 0);
+                            material.needsUpdate = true;
+                        });
+                    }
+                });
+
+                // Add soft contact shadow under character's feet
+                const charShadow = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.95, 0.95).rotateX(-Math.PI / 2),
+                    new THREE.MeshBasicMaterial({ map: contactShadowTex, transparent: true, opacity: 0.65, depthWrite: false })
+                );
+                charShadow.position.y = 0.015;
+                model.add(charShadow);
+
+                if (characterController && characterController.model) {
+                    scene.remove(characterController.model);
+                }
+                model.position.copy(currentPos);
+                model.quaternion.copy(currentQuat);
+                model.visible = !(hiluxSystem && hiluxSystem.isDriving);
+                scene.add(model);
+
+                const mixer = new THREE.AnimationMixer(model);
+                const animationsMap = new Map();
+                gltf.animations.filter(a => a.name !== 'TPose' && !a.name.includes('.001')).forEach((a) => {
+                    animationsMap.set(a.name, mixer.clipAction(a));
+                });
+
+                characterController.model = model;
+                characterController.mixer = mixer;
+                characterController.animationsMap = animationsMap;
+                const activeClip = animationsMap.get(characterController.currentAction) || animationsMap.get('Idle');
+                if (activeClip) activeClip.play();
+            }, undefined, () => {});
+        }
+        loadCharacterModel('mks.glb');
+
+        // Load building models (with PBR calibration)
+        loader.load('modular_classroom_preview.glb', (gltf) => {
+            const building = gltf.scene;
+            building.position.set(70, -0.4, 0);
+            const targetSize = 24;
+            const box = new THREE.Box3().setFromObject(building);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            const maxDimension = Math.max(size.x, size.y, size.z);
+            building.scale.setScalar(targetSize / maxDimension);
+            building.rotation.y = Math.PI * 20;
+            building.traverse((object) => {
+                if (object.isMesh) {
+                    object.receiveShadow = true;
+                    object.castShadow = true;
+                    if (object.material && object.material.map) object.material.map.anisotropy = maxAnisotropy;
+                }
+            });
+            scene.add(building);
+            physicsSystem.addBuilding(building);
+        }, undefined, () => {
+            const buildingGroup = new THREE.Group();
+            const buildingMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.75 });
+            const buildingMesh = new THREE.Mesh(new THREE.BoxGeometry(20, 15, 20), buildingMat);
+            buildingMesh.position.set(0, 7.5, 0);
+            buildingMesh.castShadow = true;
+            buildingMesh.receiveShadow = true;
+            buildingGroup.add(buildingMesh);
+            for (let i = 0; i < 8; i++) {
+                const step = new THREE.Mesh(
+                    new THREE.BoxGeometry(12, 1, 2),
+                    new THREE.MeshStandardMaterial({ color: 0x696969, roughness: 0.7 })
+                );
+                step.position.set(0, i * 0.5, -12 + i * 1.5);
+                step.castShadow = true;
+                step.receiveShadow = true;
+                buildingGroup.add(step);
+            }
+            buildingGroup.position.set(45, evaluateTerrainHeight(45, 14), 14);
+            scene.add(buildingGroup);
+            physicsSystem.addBuilding(buildingGroup);
+        });
+
+        loader.load('abandoned_warehouse_-_interior_scene.glb', (gltf) => {
+            const clockTower = gltf.scene;
+            clockTower.position.set(16, 3, 4);
+            clockTower.traverse((object) => {
+                if (object.isMesh) {
+                    object.receiveShadow = true;
+                    object.castShadow = true;
+                    if (object.material && object.material.map) object.material.map.anisotropy = maxAnisotropy;
+                }
+            });
+            scene.add(clockTower);
+            physicsSystem.addBuilding(clockTower);
+        }, undefined, () => {
+            const tower = new THREE.Mesh(
+                new THREE.CylinderGeometry(2, 3, 12, 12),
+                new THREE.MeshStandardMaterial({ color: 0x4682B4, roughness: 0.55, metalness: 0.3 })
+            );
+            tower.position.set(16, evaluateTerrainHeight(16, 4) + 6, 4);
+            tower.castShadow = true;
+            tower.receiveShadow = true;
+            scene.add(tower);
+            physicsSystem.addBuilding(tower);
+        });
+
+        // Local GLB / Texture File Picker & Drag-and-Drop (if opened via file:// protocol)
+        const fileInput = document.getElementById('asset-file-input');
+        document.getElementById('load-assets-btn').addEventListener('click', () => fileInput.click());
+        function handleLocalFiles(files) {
+            Array.from(files).forEach(file => {
+                const name = file.name.toLowerCase();
+                const blobUrl = URL.createObjectURL(file);
+                if (name.includes('hilux') && (name.endsWith('.glb') || name.endsWith('.gltf'))) {
+                    hiluxSystem.loadHiluxGLB(blobUrl);
+                } else if (name.includes('mks') && (name.endsWith('.glb') || name.endsWith('.gltf'))) {
+                    loadCharacterModel(blobUrl);
+                } else if (name.endsWith('.glb') || name.endsWith('.gltf')) {
+                    if (file.size > 10 * 1024 * 1024) hiluxSystem.loadHiluxGLB(blobUrl);
+                    else loadCharacterModel(blobUrl);
+                } else if (name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png')) {
+                    new THREE.TextureLoader().load(blobUrl, (tex) => {
+                        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                        tex.repeat.set(55, 55);
+                        tex.anisotropy = maxAnisotropy;
+                        tex.encoding = THREE.sRGBEncoding;
+                        terrainMaterial.map = tex;
+                        terrainMaterial.needsUpdate = true;
+                    });
+                }
+            });
+        }
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length) handleLocalFiles(e.target.files);
+        });
+        window.addEventListener('dragover', (e) => e.preventDefault());
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer && e.dataTransfer.files.length) handleLocalFiles(e.dataTransfer.files);
+        });
+
+        // =====================================================================
+        // 12. MAIN ANIMATION & SIMULATION LOOP
+        // =====================================================================
+        const clock = new THREE.Clock();
+        let frameCounter = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.05);
+
+            cannonEngine.step(delta);
+
+            if (characterController) {
+                characterController.update(delta, inputManager);
+            }
+            if (hiluxSystem) {
+                hiluxSystem.update(delta, inputManager, characterController);
+            }
+
+            const activePos = (hiluxSystem && hiluxSystem.isDriving)
+                ? hiluxSystem.vehicleGroup.position
+                : (characterController ? characterController.model.position : _v1);
+
+            // Keep DirectionalLight shadow camera tightly centered on the player/car for crisp Sketchfab shadows
+            if (renderer.shadowMap.enabled && (frameCounter % 5 === 0)) {
+                dirLight.position.set(activePos.x + 35, activePos.y + 75, activePos.z + 30);
+                dirLight.target.position.copy(activePos);
+                dirLight.target.updateMatrixWorld();
+            }
+            frameCounter++;
+
+            const renderTV = virtualTVSystem ? virtualTVSystem.update(activePos) : false;
+
+            orbitControls.update();
+
+            if (renderTV) {
+                cssRenderer.render(cssScene, camera);
+            }
+            renderer.render(scene, camera);
+            performanceMonitor.update();
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            cssRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
