@@ -3,13 +3,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>XnFire Pro — Realistic 4x4 Car Simulation, Mobile Driving Controls & Sketchfab PBR</title>
+    <title>XnFire Pro — Realistic Toyota Hilux 2.8L GD-6 Weight, Glass & Orbit-Follow Simulation</title>
     <style>
         :root {
             --accent: #ff9900;
             --accent-glow: rgba(255, 153, 0, 0.45);
-            --hud-bg: rgba(10, 14, 22, 0.80);
-            --hud-border: rgba(255, 255, 255, 0.16);
+            --hud-bg: rgba(10, 14, 22, 0.82);
+            --hud-border: rgba(255, 255, 255, 0.18);
             --good: #00ff66;
             --warn: #ffcc00;
             --bad: #ff3b30;
@@ -20,8 +20,14 @@
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
-        body {
+        html, body {
             margin: 0;
+            padding: 0;
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
             overflow: hidden;
             background: #0a0e17;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -32,6 +38,8 @@
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 2;
             pointer-events: auto;
         }
@@ -39,6 +47,8 @@
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 1;
             pointer-events: none;
         }
@@ -107,7 +117,7 @@
         .mobile-btn {
             position: absolute;
             border-radius: 50%;
-            background-color: rgba(20, 26, 36, 0.80);
+            background-color: rgba(20, 26, 36, 0.82);
             border: 2px solid rgba(255, 255, 255, 0.55);
             color: #fff;
             display: flex;
@@ -128,24 +138,24 @@
             border-color: #fff;
         }
         #runButton {
-            bottom: 80px;
-            right: 80px;
-            width: 74px;
-            height: 74px;
+            bottom: max(28px, env(safe-area-inset-bottom, 20px));
+            right: max(26px, env(safe-area-inset-right, 20px));
+            width: 72px;
+            height: 72px;
             font-size: 14px;
         }
         #jumpButton {
-            bottom: 80px;
-            right: 168px;
+            bottom: max(28px, env(safe-area-inset-bottom, 20px));
+            right: calc(max(26px, env(safe-area-inset-right, 20px)) + 86px);
             width: 64px;
             height: 64px;
             font-size: 13px;
         }
         #driveButton {
-            bottom: 168px;
-            right: 82px;
-            width: 74px;
-            height: 74px;
+            bottom: calc(max(28px, env(safe-area-inset-bottom, 20px)) + 84px);
+            right: max(26px, env(safe-area-inset-right, 20px));
+            width: 72px;
+            height: 72px;
             font-size: 13px;
             background-color: rgba(255, 153, 0, 0.92);
             color: #000;
@@ -158,10 +168,9 @@
 
         /* =====================================================================
            DEDICATED MOBILE CAR DRIVING BUTTON SYSTEM ("BUTTON WALA" CONTROLS)
-           Shown automatically whenever driving the Toyota Hilux!
            ===================================================================== */
         #car-mobile-controls {
-            position: absolute;
+            position: fixed;
             inset: 0;
             pointer-events: none;
             z-index: 102;
@@ -170,20 +179,11 @@
         body.driving-mode #car-mobile-controls {
             display: block;
         }
-        /* Left-side Steering Pad (LEFT / RIGHT Buttons) */
-        .steer-pad {
-            position: absolute;
-            bottom: 26px;
-            left: 20px;
-            display: flex;
-            gap: 14px;
-            pointer-events: auto;
-        }
         .car-ctrl-btn {
-            background: rgba(15, 23, 42, 0.82);
-            border: 2px solid rgba(255, 255, 255, 0.45);
+            background: rgba(15, 23, 42, 0.84);
+            border: 2px solid rgba(255, 255, 255, 0.50);
             color: #f8fafc;
-            border-radius: 16px;
+            border-radius: 14px;
             font-family: monospace;
             font-weight: 900;
             display: flex;
@@ -191,54 +191,84 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
             backdrop-filter: blur(6px);
             transition: transform 0.06s, background 0.1s, border-color 0.1s;
             pointer-events: auto;
         }
         .car-ctrl-btn:active, .car-ctrl-btn.active {
-            transform: scale(0.93);
-            background: rgba(255, 153, 0, 0.88);
+            transform: scale(0.92);
+            background: rgba(255, 153, 0, 0.92);
             color: #000;
             border-color: #fff;
         }
+
+        .left-driving-cluster {
+            position: absolute;
+            bottom: max(16px, env(safe-area-inset-bottom, 14px));
+            left: max(16px, env(safe-area-inset-left, 14px));
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .car-quick-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            pointer-events: auto;
+        }
+        .car-mini-btn {
+            padding: 6px 10px;
+            border-radius: 9px;
+            font-size: 11px;
+            height: 34px;
+            flex-direction: row;
+            gap: 4px;
+        }
+        .steer-pad {
+            display: flex;
+            gap: 12px;
+            pointer-events: auto;
+        }
         .steer-btn {
-            width: 82px;
-            height: 78px;
-            font-size: 24px;
+            width: 80px;
+            height: 72px;
+            font-size: 22px;
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.92));
         }
         .steer-btn span {
             font-size: 10px;
             margin-top: 2px;
             letter-spacing: 1px;
         }
-        /* Right-side Pedals (FRONT Gas Pedal, BACK Brake/Reverse Pedal, Handbrake, Nitro) */
+
         .pedal-pad {
             position: absolute;
-            bottom: 24px;
-            right: 20px;
+            bottom: max(16px, env(safe-area-inset-bottom, 14px));
+            right: max(16px, env(safe-area-inset-right, 14px));
             display: flex;
             align-items: flex-end;
-            gap: 12px;
+            gap: 10px;
             pointer-events: auto;
         }
         #btn-car-gas {
-            width: 76px;
-            height: 118px;
-            background: linear-gradient(180deg, rgba(16, 185, 129, 0.85), rgba(5, 150, 105, 0.88));
+            width: 72px;
+            height: 108px;
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.88), rgba(5, 150, 105, 0.92));
             border-color: #34d399;
-            font-size: 22px;
+            font-size: 20px;
         }
         #btn-car-gas.active {
             background: #10b981;
             color: #000;
         }
         #btn-car-brake {
-            width: 72px;
-            height: 86px;
-            background: linear-gradient(180deg, rgba(239, 68, 68, 0.85), rgba(185, 28, 28, 0.88));
+            width: 68px;
+            height: 82px;
+            background: linear-gradient(180deg, rgba(239, 68, 68, 0.88), rgba(185, 28, 28, 0.92));
             border-color: #f87171;
-            font-size: 20px;
+            font-size: 18px;
         }
         #btn-car-brake.active {
             background: #ef4444;
@@ -247,47 +277,34 @@
         .car-aux-col {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
         #btn-car-handbrake {
-            width: 68px;
-            height: 54px;
+            width: 64px;
+            height: 50px;
             border-radius: 12px;
-            background: rgba(245, 158, 11, 0.85);
+            background: rgba(245, 158, 11, 0.88);
             border-color: #fbbf24;
             color: #000;
-            font-size: 11px;
+            font-size: 10.5px;
+            text-align: center;
         }
         #btn-car-nitro {
-            width: 68px;
-            height: 54px;
+            width: 64px;
+            height: 50px;
             border-radius: 12px;
-            background: rgba(14, 165, 233, 0.85);
+            background: rgba(14, 165, 233, 0.88);
             border-color: #38bdf8;
             color: #fff;
-            font-size: 11px;
-        }
-        /* Top-left Car Quick Utility Bar (Drive Mode, Horn, Headlights, Exit) */
-        .car-Quick-bar {
-            position: absolute;
-            bottom: 116px;
-            left: 20px;
-            display: flex;
-            gap: 8px;
-            pointer-events: auto;
-        }
-        .car-mini-btn {
-            padding: 8px 11px;
-            border-radius: 10px;
-            font-size: 11px;
-            height: 40px;
+            font-size: 10.5px;
+            text-align: center;
         }
 
         /* Top Bar */
         #top-bar {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: max(8px, env(safe-area-inset-top, 8px));
+            left: max(10px, env(safe-area-inset-left, 10px));
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
@@ -297,9 +314,9 @@
             background: var(--hud-bg);
             color: #f8fafc;
             border: 1px solid var(--hud-border);
-            padding: 7px 12px;
+            padding: 6px 11px;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: bold;
             border-radius: 6px;
             cursor: pointer;
@@ -311,30 +328,50 @@
             border-color: var(--accent);
         }
         #fullscreen-btn {
-            background: rgba(255, 153, 0, 0.88);
+            background: rgba(255, 153, 0, 0.92);
             color: #000;
             border-color: #fff;
         }
 
-        /* Stunt / Airtime / Drift Live Popup */
+        /* Stunt / Airtime / Drift Score Badge */
         #stunt-banner {
             position: absolute;
-            top: 58px;
+            top: 48px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.90);
+            background: rgba(15, 23, 42, 0.92);
             border: 2px solid #38bdf8;
             color: #fff;
             padding: 6px 18px;
             border-radius: 20px;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 900;
             z-index: 105;
             display: none;
             pointer-events: none;
             box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
+            white-space: nowrap;
         }
+
+        /* Score Pill */
+        #score-pill {
+            position: absolute;
+            top: max(8px, env(safe-area-inset-top, 8px));
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 14, 22, 0.85);
+            border: 1px solid var(--accent);
+            color: #fff;
+            padding: 5px 14px;
+            border-radius: 16px;
+            font-family: monospace;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 104;
+            pointer-events: none;
+        }
+        #score-pill b { color: var(--accent); }
 
         /* Debug & Telemetry Panel */
         #debug-info {
@@ -344,10 +381,10 @@
             background: var(--hud-bg);
             border: 1px solid var(--hud-border);
             color: #f1f5f9;
-            padding: 10px 12px;
+            padding: 9px 11px;
             font-family: monospace;
-            font-size: 11.5px;
-            line-height: 1.42;
+            font-size: 11px;
+            line-height: 1.4;
             border-radius: 8px;
             z-index: 100;
             pointer-events: none;
@@ -360,15 +397,15 @@
         /* Controls Info Panel */
         #controls-info {
             position: absolute;
-            top: 52px;
+            top: 48px;
             left: 10px;
             background: var(--hud-bg);
             border: 1px solid var(--hud-border);
             color: #e2e8f0;
-            padding: 10px 12px;
+            padding: 9px 11px;
             font-family: monospace;
-            font-size: 11px;
-            line-height: 1.48;
+            font-size: 10.5px;
+            line-height: 1.45;
             border-radius: 8px;
             z-index: 100;
             pointer-events: none;
@@ -379,32 +416,32 @@
         /* Realistic Car Simulation Telemetry Cluster */
         #vehicle-dashboard {
             position: absolute;
-            bottom: 64px;
+            bottom: 54px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(10, 14, 22, 0.9);
             border: 1.5px solid var(--accent);
             color: #fff;
-            padding: 8px 18px;
+            padding: 7px 16px;
             border-radius: 14px;
             font-family: monospace;
             display: none;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
             z-index: 105;
             box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
             pointer-events: none;
             backdrop-filter: blur(8px);
         }
         .spd-big {
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 900;
             color: var(--accent);
             line-height: 1;
         }
         .rpm-track {
-            width: 120px;
-            height: 8px;
+            width: 110px;
+            height: 7px;
             background: rgba(255, 255, 255, 0.14);
             border-radius: 4px;
             overflow: hidden;
@@ -419,7 +456,7 @@
         .susp-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 3px 8px;
+            gap: 2px 8px;
             font-size: 9.5px;
             color: #cbd5e1;
         }
@@ -431,15 +468,15 @@
         /* Interactive Prompt Banner */
         #interaction-banner {
             position: absolute;
-            bottom: 20px;
+            bottom: 14px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(10, 14, 22, 0.92);
             border: 1.5px solid var(--accent);
             color: #fff;
-            padding: 7px 16px;
+            padding: 6px 14px;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: bold;
             border-radius: 20px;
             z-index: 105;
@@ -451,15 +488,15 @@
 
         .keyboard-indicator {
             position: absolute;
-            bottom: 16px;
+            bottom: 14px;
             left: 50%;
             transform: translateX(-50%);
             background: var(--hud-bg);
             border: 1px solid var(--hud-border);
             color: white;
-            padding: 7px 16px;
+            padding: 6px 14px;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 11.5px;
             border-radius: 6px;
             z-index: 100;
             pointer-events: none;
@@ -469,26 +506,46 @@
             display: none;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px), (max-height: 520px) {
             .keyboard-indicator { display: none; }
             #controls-info { display: none; }
-            #vehicle-dashboard { top: 48px; bottom: auto; padding: 6px 12px; gap: 10px; transform: translateX(-50%) scale(0.92); }
-            #interaction-banner { top: 108px; bottom: auto; font-size: 11px; }
+            #debug-info { display: none; }
+            #vehicle-dashboard {
+                top: max(8px, env(safe-area-inset-top, 8px));
+                bottom: auto;
+                left: auto;
+                right: max(12px, env(safe-area-inset-right, 12px));
+                transform: scale(0.88);
+                transform-origin: top right;
+                padding: 5px 10px;
+                gap: 8px;
+            }
+            #interaction-banner {
+                bottom: max(14px, env(safe-area-inset-bottom, 12px));
+                font-size: 10.5px;
+                padding: 5px 12px;
+            }
+            .steer-btn { width: 72px; height: 64px; font-size: 20px; }
+            #btn-car-gas { width: 66px; height: 96px; font-size: 18px; }
+            #btn-car-brake { width: 62px; height: 74px; font-size: 16px; }
+            #btn-car-handbrake, #btn-car-nitro { width: 58px; height: 44px; font-size: 9.5px; }
         }
     </style>
 </head>
 <body>
     <!-- Top Control Bar: Only #fullscreen-btn remains visible when Fullscreen is active! -->
     <div id="top-bar">
-        <button id="fullscreen-btn" class="top-btn">⛶ Fullscreen (Clean View)</button>
+        <button id="fullscreen-btn" class="top-btn">⛶ Fullscreen</button>
         <button id="drive-mode-btn" class="top-btn hide-on-fullscreen">⚙️ Mode: 4x4 OFF-ROAD [M]</button>
-        <button id="env-btn" class="top-btn hide-on-fullscreen">☀️ Lighting: Sketchfab Daylight [T]</button>
-        <button id="quality-btn" class="top-btn hide-on-fullscreen">⚡ Quality: High FPS + PBR</button>
+        <button id="cam-view-btn" class="top-btn hide-on-fullscreen">🎥 Cam: Auto-Orbit Follow [V]</button>
+        <button id="env-btn" class="top-btn hide-on-fullscreen">☀️ Sky: Daylight [T]</button>
+        <button id="quality-btn" class="top-btn hide-on-fullscreen">⚡ Quality: High PBR</button>
         <button id="reset-car-btn" class="top-btn hide-on-fullscreen">🔄 Reset Car [R]</button>
-        <button id="load-assets-btn" class="top-btn hide-on-fullscreen">📁 Load Local GLB/JPG</button>
+        <button id="load-assets-btn" class="top-btn hide-on-fullscreen">📁 Load GLB/JPG</button>
         <input type="file" id="asset-file-input" multiple accept=".glb,.gltf,.jpg,.jpeg,.png" style="display:none">
     </div>
 
+    <div id="score-pill" class="hide-on-fullscreen">🏆 STUNT & DRIFT SCORE: <b id="stunt-score-val">0</b></div>
     <div id="stunt-banner">🚀 AIRTIME JUMP: 0.0m</div>
 
     <div class="crosshair hide-on-fullscreen"></div>
@@ -501,36 +558,34 @@
 
     <!-- DEDICATED MOBILE CAR DRIVING BUTTONS ("BUTTON WALA" FRONT/BACK/LEFT/RIGHT/DRIFT/NITRO/MODE) -->
     <div id="car-mobile-controls">
-        <!-- Quick Car Feature Bar -->
-        <div class="car-Quick-bar">
-            <div id="btn-car-mode" class="car-ctrl-btn car-mini-btn">⚙️ 4x4 AWD</div>
-            <div id="btn-car-horn" class="car-ctrl-btn car-mini-btn">🔊 HORN</div>
-            <div id="btn-car-lights" class="car-ctrl-btn car-mini-btn">💡 LIGHTS</div>
-            <div id="btn-car-reset" class="car-ctrl-btn car-mini-btn">🔄 FLIP</div>
-            <div id="btn-car-exit" class="car-ctrl-btn car-mini-btn" style="background:rgba(239,68,68,0.85);border-color:#fca5a5;">🚪 EXIT</div>
+        <div class="left-driving-cluster">
+            <div class="car-quick-row">
+                <div id="btn-car-mode" class="car-ctrl-btn car-mini-btn">⚙️ 4x4 AWD</div>
+                <div id="btn-car-cam" class="car-ctrl-btn car-mini-btn">🎥 FOLLOW</div>
+                <div id="btn-car-horn" class="car-ctrl-btn car-mini-btn">🔊 HORN</div>
+                <div id="btn-car-reset" class="car-ctrl-btn car-mini-btn">🔄 FLIP</div>
+                <div id="btn-car-exit" class="car-ctrl-btn car-mini-btn" style="background:rgba(239,68,68,0.88);border-color:#fca5a5;">🚪 EXIT</div>
+            </div>
+            <div class="steer-pad">
+                <div id="btn-car-left" class="car-ctrl-btn steer-btn">
+                    ◀<span>LEFT</span>
+                </div>
+                <div id="btn-car-right" class="car-ctrl-btn steer-btn">
+                    ▶<span>RIGHT</span>
+                </div>
+            </div>
         </div>
 
-        <!-- Left Side: LEFT / RIGHT Steering Buttons -->
-        <div class="steer-pad">
-            <div id="btn-car-left" class="car-ctrl-btn steer-btn">
-                ◀<span>LEFT</span>
-            </div>
-            <div id="btn-car-right" class="car-ctrl-btn steer-btn">
-                ▶<span>RIGHT</span>
-            </div>
-        </div>
-
-        <!-- Right Side: Aux (Handbrake Drift + Nitro Boost) + BACK (Brake/Rev) + FRONT (Gas) -->
         <div class="pedal-pad">
             <div class="car-aux-col">
-                <div id="btn-car-nitro" class="car-ctrl-btn">🔥 NITRO<br><span style="font-size:9px;">BOOST</span></div>
-                <div id="btn-car-handbrake" class="car-ctrl-btn">((O)) DRIFT<br><span style="font-size:9px;">BRAKE</span></div>
+                <div id="btn-car-nitro" class="car-ctrl-btn">🔥 NITRO<br><span style="font-size:8.5px;">BOOST</span></div>
+                <div id="btn-car-handbrake" class="car-ctrl-btn">((O)) DRIFT<br><span style="font-size:8.5px;">BRAKE</span></div>
             </div>
             <div id="btn-car-brake" class="car-ctrl-btn">
-                ▼<span style="font-size:10px;margin-top:4px;">BACK / REV</span>
+                ▼<span style="font-size:9.5px;margin-top:4px;">BACK / REV</span>
             </div>
             <div id="btn-car-gas" class="car-ctrl-btn">
-                ▲<span style="font-size:10px;margin-top:6px;">FRONT / GAS</span>
+                ▲<span style="font-size:9.5px;margin-top:6px;">FRONT / GAS</span>
             </div>
         </div>
     </div>
@@ -538,11 +593,11 @@
     <!-- Car Dashboard Telemetry (Hidden in Clean Fullscreen Mode) -->
     <div id="vehicle-dashboard" class="hide-on-fullscreen">
         <div>
-            <span class="spd-big" id="hud-speed">0</span> <span style="font-size:11px;">KM/H</span>
-            <div style="font-size:10px;color:#cbd5e1;margin-top:2px;">GEAR: <b id="hud-gear" style="color:#ff9900;">N</b> | <span id="hud-rpm-num">850</span> RPM</div>
+            <span class="spd-big" id="hud-speed">0</span> <span style="font-size:10px;">KM/H</span>
+            <div style="font-size:9.5px;color:#cbd5e1;margin-top:2px;">GEAR: <b id="hud-gear" style="color:#ff9900;">N</b> | <span id="hud-rpm-num">800</span> RPM</div>
         </div>
         <div>
-            <div style="font-size:10px;color:#cbd5e1;">MODE: <b id="hud-mode" style="color:#38bdf8;">4x4 OFF-ROAD</b> | <b id="hud-traction" style="color:#00ff66;">GRIP</b></div>
+            <div style="font-size:9.5px;color:#cbd5e1;">MODE: <b id="hud-mode" style="color:#38bdf8;">4x4 OFF-ROAD</b> | <b id="hud-traction" style="color:#00ff66;">GRIP</b></div>
             <div class="rpm-track"><div id="rpm-bar"></div></div>
         </div>
         <div class="susp-grid">
@@ -554,7 +609,7 @@
     </div>
 
     <div id="interaction-banner" class="hide-on-fullscreen">Press [F] or Tap DRIVE to Enter Toyota Hilux 4x4</div>
-    <div class="keyboard-indicator">Mouse Drag: 360° Orbit | WASD: Move / Drive | M: Driving Mode | Shift: Nitro | Space: Jump / Drift | F: Enter/Exit Car</div>
+    <div class="keyboard-indicator">Mouse Drag: 360° Orbit on Car Center | WASD: Move / Drive | M: Mode | V: Camera Mode | Shift: Nitro | F: Enter/Exit Car</div>
 
     <div id="debug-info">
         <div>FPS: <span id="fps" class="performance-good">60</span> (<span id="dpiScale">1.0</span>x DPI)</div>
@@ -569,13 +624,12 @@
     </div>
 
     <div id="controls-info">
-        <div><b>Mouse Drag</b>: 360° Orbit Camera</div>
-        <div><b>WASD / Mobile Buttons</b>: Drive Front/Back/Left/Right</div>
-        <div><b>M Key / Mode Btn</b>: 5 Driving Modes (4x4, Drift, Sport, Crawler, Stunt)</div>
-        <div><b>Shift / NITRO</b>: Twin-Flame Nitrous Boost + Jump Launch</div>
-        <div><b>Space / DRIFT</b>: Handbrake Skid-Slip + Smoke</div>
-        <div><b>F / DRIVE</b>: Enter / Exit Toyota Hilux</div>
-        <div><b>R / FLIP</b>: Reset Car | <b>H</b>: Horn | <b>L</b>: Headlights</div>
+        <div><b>Mouse Drag / Touch</b>: 360° Orbit Around Exact Car Point</div>
+        <div><b>V Key / Cam Btn</b>: Auto-Follow Orbit / Free Orbit / Action / Hood</div>
+        <div><b>WASD / Mobile Buttons</b>: Realistic 2.1-Ton Hilux 6-Speed Drive</div>
+        <div><b>M Key / Mode Btn</b>: 5 Modes (4x4, Drift, Sport, Crawler, Stunt)</div>
+        <div><b>Shift / NITRO</b>: Turbo Boost | <b>Space / DRIFT</b>: Handbrake</div>
+        <div><b>F / DRIVE</b>: Enter / Exit Car | <b>R / FLIP</b>: Reset Car</div>
         <div><b>Fullscreen Btn</b>: Clean Fullscreen (Hides All Data Panels!)</div>
     </div>
 
@@ -597,16 +651,33 @@
         const _v2 = new THREE.Vector3();
         const _v3 = new THREE.Vector3();
         const _v4 = new THREE.Vector3();
+        const _vecX = new THREE.Vector3();
+        const _vecY = new THREE.Vector3();
+        const _vecZ = new THREE.Vector3();
+        const _mat4 = new THREE.Matrix4();
         const _quat1 = new THREE.Quaternion();
         const _quat2 = new THREE.Quaternion();
         const _euler1 = new THREE.Euler();
+
+        let totalStuntScore = 0;
+        function addStuntScore(points, label) {
+            totalStuntScore += Math.round(points);
+            const scoreEl = document.getElementById('stunt-score-val');
+            if (scoreEl) scoreEl.textContent = totalStuntScore;
+            if (label) {
+                const sb = document.getElementById('stunt-banner');
+                if (sb) {
+                    sb.style.display = 'block';
+                    sb.textContent = `${label} (+${Math.round(points)} PTS)`;
+                }
+            }
+        }
 
         class CarSoundSynthesizer {
             constructor() {
                 this.ctx = null;
                 this.engineOsc = null;
                 this.engineGain = null;
-                this.skidGain = null;
                 const initAudio = () => {
                     if (!this.ctx) {
                         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -629,9 +700,9 @@
                     this.engineGain = this.ctx.createGain();
                     const filter = this.ctx.createBiquadFilter();
                     this.engineOsc.type = 'sawtooth';
-                    this.engineOsc.frequency.value = 42;
+                    this.engineOsc.frequency.value = 38;
                     filter.type = 'lowpass';
-                    filter.frequency.value = 175;
+                    filter.frequency.value = 165;
                     this.engineGain.gain.value = 0.0;
                     this.engineOsc.connect(filter);
                     filter.connect(this.engineGain);
@@ -647,9 +718,9 @@
                     this.engineGain.gain.setTargetAtTime(0.0, now, 0.08);
                     return;
                 }
-                const freq = 34 + (rpm / 6500) * 115 + (isNitro ? 25 : 0);
+                const freq = 32 + (rpm / 4800) * 95 + (isNitro ? 22 : 0);
                 this.engineOsc.frequency.setTargetAtTime(freq, now, 0.04);
-                this.engineGain.gain.setTargetAtTime(isSkidding ? 0.11 : 0.075, now, 0.06);
+                this.engineGain.gain.setTargetAtTime(isSkidding ? 0.10 : 0.07, now, 0.06);
             }
 
             playHorn() {
@@ -675,14 +746,31 @@
                 const osc = this.ctx.createOscillator();
                 const g = this.ctx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(95, now);
-                osc.frequency.exponentialRampToValueAtTime(24, now + 0.14);
-                g.gain.setValueAtTime(Math.min(0.28, impactSpeed * 0.03), now);
-                g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                osc.frequency.setValueAtTime(92, now);
+                osc.frequency.exponentialRampToValueAtTime(22, now + 0.16);
+                g.gain.setValueAtTime(Math.min(0.32, impactSpeed * 0.035), now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
                 osc.connect(g);
                 g.connect(this.ctx.destination);
                 osc.start(now);
-                osc.stop(now + 0.16);
+                osc.stop(now + 0.18);
+            }
+
+            playRingChime() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [587.33, 880, 1174.66].forEach((f, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const g = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(f, now + idx * 0.06);
+                    g.gain.setValueAtTime(0.12, now + idx * 0.06);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.32);
+                    osc.connect(g);
+                    g.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.06);
+                    osc.stop(now + idx * 0.06 + 0.34);
+                });
             }
         }
         const carSound = new CarSoundSynthesizer();
@@ -722,8 +810,7 @@
             if (Math.abs(j1x) < 1.0 && Math.abs(j1z) < 1.0) {
                 const wx = 0.5 * (1 + Math.cos(Math.PI * j1x));
                 const wz = 0.5 * (1 + Math.cos(Math.PI * j1z));
-                const profile = j1x < 0 ? Math.cos(j1x * Math.PI * 0.5) : (1 - j1x);
-                h += 2.8 * wx * wz * Math.max(0, profile);
+                h += 2.6 * wx * wz;
             }
 
             // Sculpted Natural Dirt Jump Hill 2 (at x = 58, z = 18)
@@ -732,7 +819,16 @@
             if (Math.abs(j2x) < 1.0 && Math.abs(j2z) < 1.0) {
                 const wx = 0.5 * (1 + Math.cos(Math.PI * j2x));
                 const wz = 0.5 * (1 + Math.cos(Math.PI * j2z));
-                h += 3.0 * wx * wz;
+                h += 2.8 * wx * wz;
+            }
+
+            // Sculpted Downhill Drop-Off Bowl (at x = 48, z = -25) — drops -2.9m below flat plain
+            const d1x = (x - 48) / 13.5;
+            const d1z = (z - (-25)) / 9.5;
+            if (Math.abs(d1x) < 1.0 && Math.abs(d1z) < 1.0) {
+                const wx = 0.5 * (1 + Math.cos(Math.PI * d1x));
+                const wz = 0.5 * (1 + Math.cos(Math.PI * d1z));
+                h -= 2.9 * wx * wz;
             }
 
             return h;
@@ -784,8 +880,8 @@
             canvas.height = 128;
             const ctx = canvas.getContext('2d');
             const grad = ctx.createRadialGradient(64, 64, 8, 64, 64, 60);
-            grad.addColorStop(0.0, 'rgba(0, 0, 0, 0.72)');
-            grad.addColorStop(0.55, 'rgba(0, 0, 0, 0.35)');
+            grad.addColorStop(0.0, 'rgba(0, 0, 0, 0.76)');
+            grad.addColorStop(0.55, 'rgba(0, 0, 0, 0.38)');
             grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 128, 128);
@@ -825,11 +921,25 @@
         orbitControls.enableDamping = true;
         orbitControls.dampingFactor = 0.08;
         orbitControls.minDistance = 2.0;
-        orbitControls.maxDistance = 6.0;
+        orbitControls.maxDistance = 9.0;
         orbitControls.enablePan = false;
-        orbitControls.maxPolarAngle = Math.PI / 1.3 - 0.5;
+        orbitControls.maxPolarAngle = Math.PI / 2 - 0.03;
         orbitControls.target.set(80, 1.5, 0);
         orbitControls.update();
+
+        // Track when the user manually orbits with mouse/touch so Auto-Follow Orbit Camera
+        // lets you freely orbit 360° around the exact car center point and smoothly resumes
+        // following behind the car after 1.6 seconds!
+        let lastUserOrbitTime = 0;
+        let isUserDraggingOrbit = false;
+        orbitControls.addEventListener('start', () => {
+            isUserDraggingOrbit = true;
+            lastUserOrbitTime = performance.now();
+        });
+        orbitControls.addEventListener('end', () => {
+            isUserDraggingOrbit = false;
+            lastUserOrbitTime = performance.now();
+        });
 
         const pmremGenerator = new THREE.PMREMGenerator(renderer);
         pmremGenerator.compileEquirectangularShader();
@@ -945,7 +1055,7 @@
         function cycleLightingPreset() {
             currentLightingPreset = (currentLightingPreset + 1) % 3;
             if (currentLightingPreset === 0) {
-                envBtn.textContent = '☀️ Lighting: Sketchfab Daylight [T]';
+                envBtn.textContent = '☀️ Sky: Daylight [T]';
                 scene.background = loadedCubeSkybox || iblPresets.day.backgroundTex;
                 scene.environment = iblPresets.day.envMap;
                 scene.fog.color.setHex(0xc8d6e5);
@@ -954,7 +1064,7 @@
                 hemiLight.intensity = 0.85;
                 renderer.toneMappingExposure = 1.05;
             } else if (currentLightingPreset === 1) {
-                envBtn.textContent = '🌅 Lighting: Golden Sunset [T]';
+                envBtn.textContent = '🌅 Sky: Sunset [T]';
                 scene.background = iblPresets.sunset.backgroundTex;
                 scene.environment = iblPresets.sunset.envMap;
                 scene.fog.color.setHex(0xd49a79);
@@ -963,7 +1073,7 @@
                 hemiLight.intensity = 0.65;
                 renderer.toneMappingExposure = 1.0;
             } else {
-                envBtn.textContent = '🎬 Lighting: Sketchfab Studio HDRI [T]';
+                envBtn.textContent = '🎬 Sky: Studio HDRI [T]';
                 scene.background = iblPresets.studio.backgroundTex;
                 scene.environment = iblPresets.studio.envMap;
                 scene.fog.color.setHex(0x334155);
@@ -976,7 +1086,7 @@
         envBtn.addEventListener('click', cycleLightingPreset);
 
         // =====================================================================
-        // 3. CANNON.JS RIGID-BODY WORLD + STUNT PARK RAMPS & ROCK CRAWLER MOGULS
+        // 3. CANNON.JS RIGID-BODY WORLD + SMOOTH TABLETOP RAMPS (No Cliff Clipping!)
         // =====================================================================
         class CannonPhysicsEngine {
             constructor(scene) {
@@ -984,6 +1094,7 @@
                 this.hasCannon = typeof window.CANNON !== 'undefined';
                 this.dynamicProps = [];
                 this.ramps = [];
+                this.stuntRings = [];
 
                 if (this.hasCannon) {
                     this.world = new CANNON.World();
@@ -1008,6 +1119,25 @@
                 return body;
             }
 
+            // Smooth Tabletop Ramp Profile:
+            // Rises smoothly up the main ramp, rounds over a flat tabletop crest deck,
+            // and slopes down on the exit side so wheels NEVER clip into a sharp 90° cliff edge!
+            evaluateTabletopProfile(u, dir, height) {
+                const t = dir === 'x-' ? (1.0 - u) : u;
+                if (t < 0.72) {
+                    // Main launch slope (smooth S-curve entry + linear launch)
+                    const s = t / 0.72;
+                    return height * (0.25 * (s * s) + 0.75 * s);
+                } else if (t <= 0.84) {
+                    // Smooth rounded crest deck at peak height
+                    return height;
+                } else {
+                    // Exit down-ramp (prevents sharp 90-degree cliff clipping at the end of the slope!)
+                    const d = (1.0 - t) / 0.16;
+                    return height * (d * d * (3 - 2 * d));
+                }
+            }
+
             getSurfaceHeight(x, z) {
                 let h = evaluateTerrainHeight(x, z);
                 for (let i = 0; i < this.ramps.length; i++) {
@@ -1022,14 +1152,9 @@
                             const v = (z - r.minZ) / (r.maxZ - r.minZ);
                             const mogulH = r.baseY + Math.sin(u * Math.PI) * Math.sin(v * Math.PI) * r.height;
                             if (mogulH > h) h = mogulH;
-                        } else if (r.dir === 'x-') {
-                            // Smooth curved + linear launch ramp rising toward minX
-                            const t = 1.0 - (x - r.minX) / (r.maxX - r.minX);
-                            const rampY = r.baseY + (0.75 * t + 0.25 * t * t) * r.height;
-                            if (rampY > h) h = rampY;
-                        } else if (r.dir === 'x+') {
-                            const t = (x - r.minX) / (r.maxX - r.minX);
-                            const rampY = r.baseY + (0.75 * t + 0.25 * t * t) * r.height;
+                        } else if (r.type === 'tabletop') {
+                            const u = (x - r.minX) / (r.maxX - r.minX);
+                            const rampY = r.baseY + this.evaluateTabletopProfile(u, r.dir, r.height);
                             if (rampY > h) h = rampY;
                         }
                     }
@@ -1037,22 +1162,20 @@
                 return h;
             }
 
-            createWedgeMesh(lenX, heightY, widthZ, dir, mat) {
-                const segsX = 16;
+            createTabletopRampMesh(lenX, heightY, widthZ, dir, mat) {
+                const segsX = 32;
                 const geom = new THREE.BufferGeometry();
                 const hx = lenX * 0.5;
                 const hz = widthZ * 0.5;
                 const positions = [];
 
                 for (let i = 0; i < segsX; i++) {
-                    const f0 = i / segsX;
-                    const f1 = (i + 1) / segsX;
-                    const x0 = -hx + f0 * lenX;
-                    const x1 = -hx + f1 * lenX;
-                    const t0 = dir === 'x-' ? (1.0 - f0) : f0;
-                    const t1 = dir === 'x-' ? (1.0 - f1) : f1;
-                    const y0 = (0.75 * t0 + 0.25 * t0 * t0) * heightY;
-                    const y1 = (0.75 * t1 + 0.25 * t1 * t1) * heightY;
+                    const u0 = i / segsX;
+                    const u1 = (i + 1) / segsX;
+                    const x0 = -hx + u0 * lenX;
+                    const x1 = -hx + u1 * lenX;
+                    const y0 = this.evaluateTabletopProfile(u0, dir, heightY);
+                    const y1 = this.evaluateTabletopProfile(u1, dir, heightY);
 
                     // Top ramp surface
                     positions.push(
@@ -1067,12 +1190,6 @@
                         x1, 0, -hz,  x0, y0, -hz,  x1, y1, -hz
                     );
                 }
-                // Back vertical wall
-                const backX = dir === 'x-' ? -hx : hx;
-                positions.push(
-                    backX, 0,  hz,  backX, heightY,  hz,  backX, heightY, -hz,
-                    backX, 0,  hz,  backX, heightY, -hz,  backX, 0, -hz
-                );
 
                 geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
                 geom.computeVertexNormals();
@@ -1086,60 +1203,77 @@
                 const rampMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.45, metalness: 0.35 });
                 const rampMat2 = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.45, metalness: 0.35 });
 
-                // 1. Main Stunt Jump Ramp 1 on the road (x = 46..57, z = -8.8..-3.2, rises 1.75m toward -X)
-                const r1MinX = 46, r1MaxX = 57, r1MinZ = -8.8, r1MaxZ = -3.2, r1H = 1.75;
-                const r1BaseY = evaluateTerrainHeight(51.5, -6);
-                this.ramps.push({ type: 'wedge', dir: 'x-', minX: r1MinX, maxX: r1MaxX, minZ: r1MinZ, maxZ: r1MaxZ, baseY: r1BaseY, height: r1H });
-                const wedge1 = this.createWedgeMesh(r1MaxX - r1MinX, r1H, r1MaxZ - r1MinZ, 'x-', rampMat);
+                // 1. Main Stunt Tabletop Jump Ramp 1 on the road (x = 44..58, z = -8.8..-3.2, rises 1.75m toward -X)
+                const r1MinX = 44, r1MaxX = 58, r1MinZ = -8.8, r1MaxZ = -3.2, r1H = 1.75;
+                const r1BaseY = evaluateTerrainHeight(51.0, -6);
+                this.ramps.push({ type: 'tabletop', dir: 'x-', minX: r1MinX, maxX: r1MaxX, minZ: r1MinZ, maxZ: r1MaxZ, baseY: r1BaseY, height: r1H });
+                const wedge1 = this.createTabletopRampMesh(r1MaxX - r1MinX, r1H, r1MaxZ - r1MinZ, 'x-', rampMat);
                 wedge1.position.set((r1MinX + r1MaxX) * 0.5, r1BaseY, (r1MinZ + r1MaxZ) * 0.5);
                 this.scene.add(wedge1);
 
-                // Glowing Stunt Target Ring floating in the air past Ramp 1!
-                const ringMat = new THREE.MeshStandardMaterial({ color: 0xff5500, emissive: 0xff3300, emissiveIntensity: 0.6, roughness: 0.3 });
-                const stuntRing = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.22, 12, 32), ringMat);
-                stuntRing.rotation.y = Math.PI / 2;
-                stuntRing.position.set(39, r1BaseY + 3.8, -6);
-                this.scene.add(stuntRing);
-
-                // 2. Opposing Return Jump Ramp 2 (x = 18..29, z = -8.8..-3.2, rises 1.75m toward +X)
-                const r2MinX = 18, r2MaxX = 29, r2MinZ = -8.8, r2MaxZ = -3.2, r2H = 1.75;
-                const r2BaseY = evaluateTerrainHeight(23.5, -6);
-                this.ramps.push({ type: 'wedge', dir: 'x+', minX: r2MinX, maxX: r2MaxX, minZ: r2MinZ, maxZ: r2MaxZ, baseY: r2BaseY, height: r2H });
-                const wedge2 = this.createWedgeMesh(r2MaxX - r2MinX, r2H, r2MaxZ - r2MinZ, 'x+', rampMat2);
+                // 2. Opposing Return Tabletop Jump Ramp 2 (x = 17..31, z = -8.8..-3.2, rises 1.75m toward +X)
+                const r2MinX = 17, r2MaxX = 31, r2MinZ = -8.8, r2MaxZ = -3.2, r2H = 1.75;
+                const r2BaseY = evaluateTerrainHeight(24.0, -6);
+                this.ramps.push({ type: 'tabletop', dir: 'x+', minX: r2MinX, maxX: r2MaxX, minZ: r2MinZ, maxZ: r2MaxZ, baseY: r2BaseY, height: r2H });
+                const wedge2 = this.createTabletopRampMesh(r2MaxX - r2MinX, r2H, r2MaxZ - r2MinZ, 'x+', rampMat2);
                 wedge2.position.set((r2MinX + r2MaxX) * 0.5, r2BaseY, (r2MinZ + r2MaxZ) * 0.5);
                 this.scene.add(wedge2);
 
-                // 3. Three Low-Speed Shocker Test Speed-Bumps (at x = 66, 63, 60)
+                // 3. Collectible / Score Stunt Rings at Jump Ramps & Dirt Hills
+                const ringSpecs = [
+                    { x: 38, y: r1BaseY + 3.2, z: -6, rotY: Math.PI / 2 },
+                    { x: 26, y: evaluateTerrainHeight(26, -16) + 3.4, z: -16, rotY: Math.PI / 2 },
+                    { x: 58, y: evaluateTerrainHeight(58, 18) + 3.6, z: 18, rotY: 0 }
+                ];
+                ringSpecs.forEach((rs) => {
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: 0xff9900,
+                        emissive: 0xff5500,
+                        emissiveIntensity: 0.7,
+                        roughness: 0.25
+                    });
+                    const mesh = new THREE.Mesh(new THREE.TorusGeometry(3.1, 0.22, 12, 32), mat);
+                    mesh.position.set(rs.x, rs.y, rs.z);
+                    mesh.rotation.y = rs.rotY;
+                    this.scene.add(mesh);
+                    this.stuntRings.push({ mesh, cooldown: 0 });
+                });
+
+                // 4. Three Low-Speed Shocker Test Speed-Bumps (at x = 66, 63, 60)
                 const bumpMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.45, metalness: 0.25 });
                 [66, 63, 60].forEach((bx) => {
                     const by = evaluateTerrainHeight(bx, -6);
-                    const bump = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 4.8, 14), bumpMat);
+                    const bump = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 4.8, 14), bumpMat);
                     bump.rotation.x = Math.PI / 2;
                     bump.position.set(bx, by + 0.02, -6);
                     bump.castShadow = true;
                     bump.receiveShadow = true;
                     this.scene.add(bump);
-                    this.ramps.push({ type: 'bump', minX: bx - 0.30, maxX: bx + 0.30, minZ: -8.4, maxZ: -3.6, baseY: by, height: 0.15 });
+                    this.ramps.push({ type: 'bump', minX: bx - 0.30, maxX: bx + 0.30, minZ: -8.4, maxZ: -3.6, baseY: by, height: 0.14 });
                 });
 
-                // 4. Alternating Off-Road Rock-Crawler Moguls (at x = 52..68, z = -15..-11) for flexing individual wheel shockers!
+                // 5. Alternating Off-Road Rock-Crawler Moguls (at x = 52..68, z = -15..-11)
                 const rockMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.85, metalness: 0.1 });
                 [[66, -13.2], [63, -14.8], [60, -13.2], [57, -14.8], [54, -13.2]].forEach(([mx, mz]) => {
                     const my = evaluateTerrainHeight(mx, mz);
                     const mound = new THREE.Mesh(new THREE.SphereGeometry(1.15, 12, 8), rockMat);
-                    mound.scale.set(1.2, 0.32, 1.0);
+                    mound.scale.set(1.2, 0.30, 1.0);
                     mound.position.set(mx, my - 0.05, mz);
                     mound.castShadow = true;
                     mound.receiveShadow = true;
                     this.scene.add(mound);
-                    this.ramps.push({ type: 'mogul', minX: mx - 1.35, maxX: mx + 1.35, minZ: mz - 1.15, maxZ: mz + 1.15, baseY: my, height: 0.34 });
+                    this.ramps.push({ type: 'mogul', minX: mx - 1.35, maxX: mx + 1.35, minZ: mz - 1.15, maxZ: mz + 1.15, baseY: my, height: 0.32 });
                 });
 
-                // 5. Knockable Cannon.js Physics Crates
+                // 6. Smashable Cannon.js Physics Crate Pyramid
                 if (!this.hasCannon) return;
                 const crateGeo = new THREE.BoxGeometry(1.1, 1.1, 1.1);
                 const crateMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.65, metalness: 0.1 });
-                [[35, -6.6], [35, -5.3], [35, -4.0], [35, -6.0, 1.15]].forEach(([cx, cz, extraY]) => {
+                [
+                    [36, -6.8, 0], [36, -5.5, 0], [36, -4.2, 0],
+                    [36, -6.15, 1.15], [36, -4.85, 1.15],
+                    [36, -5.5, 2.30]
+                ].forEach(([cx, cz, extraY]) => {
                     const cy = evaluateTerrainHeight(cx, cz) + 0.55 + (extraY || 0);
                     const mesh = new THREE.Mesh(crateGeo, crateMat);
                     mesh.position.set(cx, cy, cz);
@@ -1147,17 +1281,17 @@
                     mesh.receiveShadow = true;
                     this.scene.add(mesh);
 
-                    const body = new CANNON.Body({ mass: 22, linearDamping: 0.2, angularDamping: 0.3 });
+                    const body = new CANNON.Body({ mass: 20, linearDamping: 0.2, angularDamping: 0.3 });
                     body.addShape(new CANNON.Box(new CANNON.Vec3(0.55, 0.55, 0.55)));
                     body.position.set(cx, cy, cz);
                     body.allowSleep = true;
                     this.world.addBody(body);
-                    this.dynamicProps.push({ mesh, body });
+                    this.dynamicProps.push({ mesh, body, hitScored: false });
                 });
                 document.getElementById('cannonBodies').textContent = this.world.bodies.length;
             }
 
-            step(delta) {
+            step(delta, vehiclePos) {
                 if (!this.hasCannon) return;
                 this.world.step(1 / 60, delta, 2);
 
@@ -1170,6 +1304,27 @@
                     }
                     p.mesh.position.set(p.body.position.x, p.body.position.y, p.body.position.z);
                     p.mesh.quaternion.set(p.body.quaternion.x, p.body.quaternion.y, p.body.quaternion.z, p.body.quaternion.w);
+
+                    if (!p.hitScored && p.body.velocity.norm() > 4.0) {
+                        p.hitScored = true;
+                        addStuntScore(150, '💥 CRATE SMASH BONUS');
+                        setTimeout(() => { p.hitScored = false; }, 4000);
+                    }
+                }
+
+                if (vehiclePos) {
+                    for (let i = 0; i < this.stuntRings.length; i++) {
+                        const sr = this.stuntRings[i];
+                        if (sr.cooldown > 0) {
+                            sr.cooldown -= delta;
+                        } else if (vehiclePos.distanceTo(sr.mesh.position) < 3.5) {
+                            sr.cooldown = 4.0;
+                            sr.mesh.material.emissive.setHex(0x00ff66);
+                            carSound.playRingChime();
+                            addStuntScore(500, '🔥 STUNT RING JUMP');
+                            setTimeout(() => { sr.mesh.material.emissive.setHex(0xff5500); }, 1500);
+                        }
+                    }
                 }
             }
         }
@@ -1556,7 +1711,7 @@
         }
 
         // =====================================================================
-        // 6. INPUT MANAGER (PC WASD + Dedicated Mobile Car Button Wala System!)
+        // 6. INPUT MANAGER
         // =====================================================================
         class InputManager {
             constructor() {
@@ -1599,6 +1754,7 @@
                     if (event.code === 'KeyL' && !event.repeat && hiluxSystem) hiluxSystem.toggleHeadlights();
                     if (event.code === 'KeyH' && !event.repeat) carSound.playHorn();
                     if (event.code === 'KeyM' && !event.repeat && hiluxSystem) hiluxSystem.cycleDrivingMode();
+                    if (event.code === 'KeyV' && !event.repeat && hiluxSystem) hiluxSystem.cycleCameraView();
                     if (event.code === 'KeyT' && !event.repeat) cycleLightingPreset();
                     if (event.code === 'Space') {
                         this.jumpPressed = true;
@@ -1679,12 +1835,10 @@
                     el.addEventListener('touchcancel', end, { passive: false });
                 };
 
-                // On-foot buttons
                 bindHoldBtn('runButton', () => { this.mobileRunning = true; }, () => { this.mobileRunning = false; });
                 bindHoldBtn('jumpButton', () => { this.jumpPressed = true; }, () => { this.jumpPressed = false; });
                 bindHoldBtn('driveButton', () => { if (hiluxSystem) hiluxSystem.enterOrExit(characterController); });
 
-                // Dedicated Mobile Car Driving Buttons ("Button Wala" Front, Back, Left, Right, Handbrake, Nitro)
                 bindHoldBtn('btn-car-gas', () => { this.carButtonState.gas = true; }, () => { this.carButtonState.gas = false; });
                 bindHoldBtn('btn-car-brake', () => { this.carButtonState.brake = true; }, () => { this.carButtonState.brake = false; });
                 bindHoldBtn('btn-car-left', () => { this.carButtonState.left = true; }, () => { this.carButtonState.left = false; });
@@ -1692,16 +1846,14 @@
                 bindHoldBtn('btn-car-handbrake', () => { this.carButtonState.handbrake = true; }, () => { this.carButtonState.handbrake = false; });
                 bindHoldBtn('btn-car-nitro', () => { this.carButtonState.nitro = true; }, () => { this.carButtonState.nitro = false; });
 
-                // Quick Car Utility Buttons
                 bindHoldBtn('btn-car-mode', () => { if (hiluxSystem) hiluxSystem.cycleDrivingMode(); });
+                bindHoldBtn('btn-car-cam', () => { if (hiluxSystem) hiluxSystem.cycleCameraView(); });
                 bindHoldBtn('btn-car-horn', () => { carSound.playHorn(); });
-                bindHoldBtn('btn-car-lights', () => { if (hiluxSystem) hiluxSystem.toggleHeadlights(); });
                 bindHoldBtn('btn-car-reset', () => { if (hiluxSystem) hiluxSystem.resetVehicleNearPlayer(characterController); });
                 bindHoldBtn('btn-car-exit', () => { if (hiluxSystem) hiluxSystem.enterOrExit(characterController); });
             }
 
             getMovementVector() {
-                // Combine dedicated Car Buttons (Front/Back/Left/Right) when driving!
                 const cb = this.carButtonState;
                 if (cb.gas || cb.brake || cb.left || cb.right) {
                     document.getElementById('inputMethod').textContent = 'Car Driving Buttons';
@@ -1732,16 +1884,14 @@
             }
         }
 
-        // =====================================================================
-        // FULLSCREEN BUTTON: Enters Fullscreen AND Hides All Data-Showing Panels!
-        // =====================================================================
+        // Fullscreen Button
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         let isCleanFullscreen = false;
 
         function setCleanFullscreenState(active) {
             isCleanFullscreen = active;
             document.body.classList.toggle('clean-fullscreen', isCleanFullscreen);
-            fullscreenBtn.textContent = isCleanFullscreen ? '⛶ Exit Fullscreen' : '⛶ Fullscreen (Clean View)';
+            fullscreenBtn.textContent = isCleanFullscreen ? '⛶ Exit Fullscreen' : '⛶ Fullscreen';
         }
 
         fullscreenBtn.addEventListener('click', () => {
@@ -1762,7 +1912,6 @@
             }
         });
 
-        // Performance Monitor
         class PerformanceMonitor {
             constructor() {
                 this.frameCount = 0;
@@ -1790,7 +1939,7 @@
                 } else {
                     this.dpi = Math.min(window.devicePixelRatio || 1, 1.35);
                     renderer.shadowMap.enabled = true;
-                    btn.textContent = '⚡ Quality: High FPS + PBR';
+                    btn.textContent = '⚡ Quality: High PBR';
                 }
                 renderer.setPixelRatio(this.dpi);
                 this.dpiEl.textContent = this.dpi.toFixed(2);
@@ -1937,11 +2086,11 @@
         }
 
         // =====================================================================
-        // 9. ADVANCED 5-MODE TOYOTA HILUX 4x4 SIMULATION
-        //    - 5 Driving Modes: 4x4 OFF-ROAD, DRIFT PRO, SPORT TRACK, ROCK CRAWLER, ARCADE STUNT
-        //    - Dedicated Mobile Car Buttons (FRONT/BACK/LEFT/RIGHT/DRIFT/NITRO)
-        //    - True Ballistic Slope & Ramp Jumping with Mid-Air Attitude Control & Airtime Tracker
-        //    - Twin Nitrous Exhaust Flames, Working Brake/Reverse Lights & Skid Smoke
+        // 9. REALISTIC TOYOTA HILUX 2.8L GD-6 4x4 SIMULATION
+        //    - Restored Custom-Fitted Tinted Automotive Window Glass + Interior
+        //    - Authentic 2,100 kg Curb-Weight 6-Speed Torque Curve & Progressive Pickup
+        //    - Smooth Slope-End Cresting + Hard Suspension Bump-Stop Lift
+        //    - Exact Car-Point Orbit + Auto-Follow Camera System
         // =====================================================================
         class ToyotaHiluxSimulation {
             constructor(scene, cannonEngine) {
@@ -1966,70 +2115,90 @@
                     { name: 'RR', x:  0.825, y: 0.405, z: -1.407, xmin:  0.66, xmax:  1.00, front: false, id: 'susp-rr' }
                 ];
 
-                // 5 Authentic Driving System Modes!
+                // Realistic 2,100 kg Toyota Hilux 2.8L GD-6 5 Driving Modes
+                // (Progressive, weighty pickup instead of instant arcade speed spikes!)
                 this.drivingModes = [
                     {
                         name: '4x4 OFF-ROAD',
                         short: '4x4 AWD',
-                        maxSpeed: 24.0,
-                        accel: 13.5,
-                        lateralGrip: 11.0,
+                        maxSpeed: 21.0, // ~76 km/h realistic off-road top speed
+                        baseAccel: 5.4, // Realistic 2.1-ton diesel pickup acceleration
+                        lateralGrip: 11.5,
                         driftGrip: 2.8,
-                        oversteer: 1.35,
-                        rideHeightOffset: 0.03,
+                        oversteer: 1.30,
+                        rideHeightOffset: 0.02,
                         rollStiffness: 65.0,
-                        jumpBoost: 1.15
+                        heaveStiffness: 52.0,
+                        heaveDamping: 9.5,
+                        jumpBoost: 1.18
                     },
                     {
                         name: 'DRIFT / RWD PRO',
                         short: 'DRIFT PRO',
-                        maxSpeed: 26.0,
-                        accel: 15.0,
-                        lateralGrip: 3.2, // Low rear grip for continuous smoky power-slides!
+                        maxSpeed: 23.5, // ~85 km/h
+                        baseAccel: 6.4,
+                        lateralGrip: 3.1,
                         driftGrip: 1.5,
-                        oversteer: 1.85,
-                        rideHeightOffset: -0.01,
-                        rollStiffness: 75.0,
-                        jumpBoost: 1.10
+                        oversteer: 1.80,
+                        rideHeightOffset: -0.015,
+                        rollStiffness: 78.0,
+                        heaveStiffness: 65.0,
+                        heaveDamping: 11.0,
+                        jumpBoost: 1.12
                     },
                     {
-                        name: 'SPORT / TRACK',
+                        name: 'SPORT / HIGHWAY',
                         short: 'SPORT GT',
-                        maxSpeed: 32.0, // ~115 km/h
-                        accel: 18.0,
-                        lateralGrip: 16.5, // Razor-sharp cornering grip
+                        maxSpeed: 28.5, // ~103 km/h realistic highway speed
+                        baseAccel: 7.2,
+                        lateralGrip: 16.5,
                         driftGrip: 4.0,
-                        oversteer: 1.15,
+                        oversteer: 1.12,
                         rideHeightOffset: -0.03,
-                        rollStiffness: 95.0,
-                        jumpBoost: 1.25
+                        rollStiffness: 92.0,
+                        heaveStiffness: 78.0,
+                        heaveDamping: 13.0,
+                        jumpBoost: 1.22
                     },
                     {
                         name: 'ROCK CRAWLER (4L)',
                         short: 'CRAWLER 4L',
-                        maxSpeed: 12.5,
-                        accel: 22.0, // Massive low-range climbing torque
-                        lateralGrip: 18.0,
+                        maxSpeed: 9.5, // ~34 km/h low-range crawler gear
+                        baseAccel: 8.5, // High low-end torque, capped crawler speed
+                        lateralGrip: 19.0,
                         driftGrip: 8.0,
                         oversteer: 1.0,
-                        rideHeightOffset: 0.07, // Lifted suspension for extreme mogul articulation
-                        rollStiffness: 45.0,
+                        rideHeightOffset: 0.065,
+                        rollStiffness: 42.0,
+                        heaveStiffness: 38.0,
+                        heaveDamping: 7.5,
                         jumpBoost: 1.0
                     },
                     {
-                        name: 'ARCADE STUNT / JUMP',
+                        name: 'STUNT / TURBO',
                         short: 'STUNT JUMP',
-                        maxSpeed: 35.0, // ~126 km/h
-                        accel: 21.0,
-                        lateralGrip: 9.5,
+                        maxSpeed: 31.5, // ~113 km/h
+                        baseAccel: 8.8,
+                        lateralGrip: 10.0,
                         driftGrip: 2.2,
-                        oversteer: 1.55,
-                        rideHeightOffset: 0.04,
-                        rollStiffness: 60.0,
-                        jumpBoost: 1.55 // Extra vertical launch lift on ramps & slopes!
+                        oversteer: 1.45,
+                        rideHeightOffset: 0.035,
+                        rollStiffness: 58.0,
+                        heaveStiffness: 48.0,
+                        heaveDamping: 8.5,
+                        jumpBoost: 1.48
                     }
                 ];
                 this.currentModeIndex = 0;
+
+                // 4 Camera Modes Orbiting on the Exact Car Center Point!
+                this.cameraViews = [
+                    { name: 'Auto-Orbit Follow', short: 'FOLLOW', dist: 5.2, height: 1.38, autoAlign: true },
+                    { name: 'Free 360° Orbit',   short: 'FREE 360', dist: 5.2, height: 1.38, autoAlign: false },
+                    { name: 'Action Close',      short: 'CLOSE',  dist: 3.7, height: 1.25, autoAlign: true },
+                    { name: 'Hood Cockpit POV',  short: 'HOOD',   dist: 0.55, height: 1.52, autoAlign: true }
+                ];
+                this.currentCamViewIndex = 0;
 
                 this.wheelSteerPivots = [];
                 this.wheelSpinners = [];
@@ -2037,6 +2206,10 @@
                 this.shockers = [];
                 this.wheelSpinAngles = [0, 0, 0, 0];
                 this.wheelCompression = [0, 0, 0, 0];
+                this.wheelContactY = [startY, startY, startY, startY];
+                this.wheelContactVelY = [0, 0, 0, 0];
+                this.wheelPrevSlope = [0, 0, 0, 0];
+                this.wheelGrounded = [true, true, true, true];
 
                 this.isDriving = false;
                 this.velX = 0;
@@ -2047,27 +2220,30 @@
                 this.isAirborne = false;
                 this.isSkidding = false;
                 this.prevGroundPlaneY = startY;
+                this.prevSlopeVertVel = 0;
                 this.jumpStartPos = new THREE.Vector3();
                 this.airtimeSec = 0;
 
                 this.yaw = -Math.PI / 2;
                 this.yawRate = 0;
-                this.airPitch = 0;
-                this.airRoll = 0;
+                this.airQuat = new THREE.Quaternion();
+                this.smoothedGroundQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
+
+                this.chassisHeave = -0.025;
+                this.chassisHeaveVel = 0;
                 this.chassisPitch = 0;
                 this.chassisPitchVel = 0;
                 this.chassisRoll = 0;
                 this.chassisRollVel = 0;
 
                 this.steeringAngle = 0;
-                this.maxSteerAngle = 0.55;
-                this.engineRpm = 850;
+                this.maxSteerAngle = 0.54;
+                this.engineRpm = 800;
                 this.currentGear = 'N';
                 this.headlightsOn = true;
                 this.interactDistance = 4.8;
                 this.isPlayerNear = false;
 
-                // Skid Marks & Smoke Particle Pool
                 this.skidMarks = [];
                 this.smokeParticles = [];
                 this.skidCooldown = 0;
@@ -2088,9 +2264,89 @@
                 });
 
                 this.buildContactShadowAndShockerSuspension();
+                this.buildCabinWindowGlassesAndInterior();
                 this.initCannonRigidBody(startX, startY, startZ);
                 this.loadHiluxGLB('toyota hilux 002.glb');
                 this.scene.add(this.vehicleGroup);
+            }
+
+            // Build Custom-Fitted 3D Tinted Automotive Glass Windows & Cabin Interior
+            // matching the exact window frame cutouts of `toyota hilux 002.glb`!
+            buildCabinWindowGlassesAndInterior() {
+                this.cabinGlassGroup = new THREE.Group();
+
+                // 1. Reflective Smoked-Tint Automotive Glass Material (Sketchfab Showroom Quality)
+                const tintedGlassMat = new THREE.MeshStandardMaterial({
+                    color: 0x0c1622,
+                    metalness: 0.92,
+                    roughness: 0.05,
+                    envMapIntensity: 2.2,
+                    transparent: true,
+                    opacity: 0.86,
+                    side: THREE.DoubleSide
+                });
+
+                // Exact 8-corner tapered cabin glass frustum matching toyota hilux 002.glb window frames:
+                // Bottom sill (y = 1.26m): x = ±0.815m, z_rear = -0.84m, z_front = +1.05m
+                // Top roofline (y = 1.805m): x = ±0.692m, z_rear = -0.81m, z_front = +0.55m
+                const xb = 0.815, yb = 1.26, zrb = -0.84, zfb = 1.05;
+                const xt = 0.692, yt = 1.805, zrt = -0.81, zft = 0.55;
+
+                const glassPositions = new Float32Array([
+                    // Front Sloped Windshield (2 triangles)
+                    -xb, yb, zfb,   xb, yb, zfb,   xt, yt, zft,
+                    -xb, yb, zfb,   xt, yt, zft,  -xt, yt, zft,
+                    // Rear Cabin Back Window (2 triangles)
+                     xb, yb, zrb,  -xb, yb, zrb,  -xt, yt, zrt,
+                     xb, yb, zrb,  -xt, yt, zrt,   xt, yt, zrt,
+                    // Left Side Door Windows (Front-Left + Rear-Left Doors)
+                    -xb, yb, zrb,  -xb, yb, zfb,  -xt, yt, zft,
+                    -xb, yb, zrb,  -xt, yt, zft,  -xt, yt, zrt,
+                    // Right Side Door Windows (Front-Right + Rear-Right Doors)
+                     xb, yb, zfb,   xb, yb, zrb,   xt, yt, zrt,
+                     xb, yb, zfb,   xt, yt, zrt,   xt, yt, zft
+                ]);
+                const glassGeom = new THREE.BufferGeometry();
+                glassGeom.setAttribute('position', new THREE.BufferAttribute(glassPositions, 3));
+                glassGeom.computeVertexNormals();
+
+                const glassMesh = new THREE.Mesh(glassGeom, tintedGlassMat);
+                this.cabinGlassGroup.add(glassMesh);
+
+                // 2. Dark Charcoal Cabin Interior (Dashboard, Seats, B-Pillars & Headliner)
+                // so looking through the tinted glass shows a realistic 3D interior instead of empty ground!
+                const interiorMat = new THREE.MeshStandardMaterial({
+                    color: 0x11151c,
+                    roughness: 0.85,
+                    metalness: 0.15
+                });
+                // Cabin tub floor & lower door cards
+                const cabinTub = new THREE.Mesh(new THREE.BoxGeometry(1.56, 0.46, 1.78), interiorMat);
+                cabinTub.position.set(0, 1.06, 0.05);
+                this.cabinGlassGroup.add(cabinTub);
+
+                // Dashboard & instrument binnacle
+                const dashboard = new THREE.Mesh(new THREE.BoxGeometry(1.50, 0.28, 0.42), interiorMat);
+                dashboard.position.set(0, 1.28, 0.72);
+                this.cabinGlassGroup.add(dashboard);
+
+                // Front Bucket Seats & Rear Bench Seatbacks + Headrests
+                [-0.38, 0.38].forEach((sx) => {
+                    const frontSeat = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.56, 0.14), interiorMat);
+                    frontSeat.position.set(sx, 1.34, 0.08);
+                    frontSeat.rotation.x = -0.15;
+                    this.cabinGlassGroup.add(frontSeat);
+                });
+                const rearBench = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.52, 0.16), interiorMat);
+                rearBench.position.set(0, 1.34, -0.66);
+                this.cabinGlassGroup.add(rearBench);
+
+                // Center B-Pillar trim between front and rear side windows
+                const bPillar = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.52, 0.10), interiorMat);
+                bPillar.position.set(0, 1.52, -0.08);
+                this.cabinGlassGroup.add(bPillar);
+
+                this.chassisGroup.add(this.cabinGlassGroup);
             }
 
             cycleDrivingMode() {
@@ -2106,6 +2362,13 @@
                 setTimeout(() => {
                     if (!this.isAirborne) stuntBanner.style.display = 'none';
                 }, 2000);
+            }
+
+            cycleCameraView() {
+                this.currentCamViewIndex = (this.currentCamViewIndex + 1) % this.cameraViews.length;
+                const cv = this.cameraViews[this.currentCamViewIndex];
+                document.getElementById('cam-view-btn').textContent = `🎥 Cam: ${cv.name} [V]`;
+                document.getElementById('btn-car-cam').textContent = `🎥 ${cv.short}`;
             }
 
             buildContactShadowAndShockerSuspension() {
@@ -2128,14 +2391,27 @@
                 this.loadingPlaceholder.add(phBox);
                 this.chassisGroup.add(this.loadingPlaceholder);
 
-                const strutBodyMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.78, roughness: 0.22 });
-                const pistonMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.95, roughness: 0.08 });
-                const coilSpringMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.45, roughness: 0.32 });
-                const armMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.65, roughness: 0.45 });
+                const underbodyMat = new THREE.MeshStandardMaterial({ color: 0x11151c, metalness: 0.45, roughness: 0.75 });
+                const strutBodyMat = new THREE.MeshStandardMaterial({ color: 0x262b33, metalness: 0.82, roughness: 0.28 });
+                const pistonMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.96, roughness: 0.08 });
+                const coilSpringMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, metalness: 0.55, roughness: 0.32 });
+                const armMat = new THREE.MeshStandardMaterial({ color: 0x181c24, metalness: 0.70, roughness: 0.42 });
                 const rotorMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.28 });
-                const caliperMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.4, roughness: 0.35 });
+                const caliperMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, metalness: 0.5, roughness: 0.35 });
 
-                const frontAxle = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.45, 10), armMat);
+                const frameRails = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.26, 4.45), underbodyMat);
+                frameRails.position.set(0, 0.56, 0.05);
+                this.chassisGroup.add(frameRails);
+
+                const frontInnerBay = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.42, 1.05), underbodyMat);
+                frontInnerBay.position.set(0, 0.76, 1.62);
+                this.chassisGroup.add(frontInnerBay);
+
+                const rearInnerBay = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.38, 1.05), underbodyMat);
+                rearInnerBay.position.set(0, 0.74, -1.407);
+                this.chassisGroup.add(rearInnerBay);
+
+                const frontAxle = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 1.48, 10), armMat);
                 frontAxle.rotation.z = Math.PI / 2;
                 frontAxle.position.set(0, 0.405, 1.620);
                 this.chassisGroup.add(frontAxle);
@@ -2152,45 +2428,45 @@
                     const sideSign = ws.x < 0 ? -1 : 1;
 
                     const shockerGroup = new THREE.Group();
-                    const shockX = sideSign * 0.61;
-                    const topMountY = 0.86;
+                    const shockX = sideSign * 0.60;
+                    const topMountY = 0.84;
                     shockerGroup.position.set(shockX, topMountY, ws.z);
 
-                    const upperCylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.24, 12), strutBodyMat);
-                    upperCylinder.position.y = -0.12;
+                    const upperCylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.22, 12), strutBodyMat);
+                    upperCylinder.position.y = -0.11;
                     shockerGroup.add(upperCylinder);
 
-                    const pistonRod = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.44, 10), pistonMat);
-                    pistonRod.position.y = -0.24;
+                    const pistonRod = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.42, 10), pistonMat);
+                    pistonRod.position.y = -0.22;
                     shockerGroup.add(pistonRod);
 
                     const springGroup = new THREE.Group();
-                    springGroup.position.y = -0.08;
-                    const coilTorusGeo = new THREE.TorusGeometry(0.058, 0.013, 8, 16);
-                    coilTorusGeo.rotateX(Math.PI / 2 - 0.12);
+                    springGroup.position.y = -0.07;
+                    const coilTorusGeo = new THREE.TorusGeometry(0.048, 0.010, 8, 16);
+                    coilTorusGeo.rotateX(Math.PI / 2 - 0.10);
                     for (let c = 0; c < 7; c++) {
                         const coil = new THREE.Mesh(coilTorusGeo, coilSpringMat);
-                        coil.position.y = -c * 0.048;
+                        coil.position.y = -c * 0.044;
                         springGroup.add(coil);
                     }
                     shockerGroup.add(springGroup);
 
-                    const controlArm = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.035, 0.12), armMat);
-                    controlArm.position.set(sideSign * 0.08, -0.44, 0);
+                    const controlArm = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.032, 0.11), armMat);
+                    controlArm.position.set(sideSign * 0.08, -0.42, 0);
                     shockerGroup.add(controlArm);
 
                     this.chassisGroup.add(shockerGroup);
-                    this.shockers.push({ group: shockerGroup, springGroup, controlArm, topMountY, baseRestLen: 0.455 });
+                    this.shockers.push({ group: shockerGroup, springGroup, controlArm, topMountY, baseRestLen: 0.435 });
 
                     const steerPivot = new THREE.Group();
                     steerPivot.position.set(ws.x, ws.y, ws.z);
 
-                    const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.15, 0.09), caliperMat);
-                    caliper.position.set(-sideSign * 0.06, 0.05, -0.16);
+                    const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.14, 0.08), caliperMat);
+                    caliper.position.set(-sideSign * 0.06, 0.05, -0.15);
                     steerPivot.add(caliper);
 
                     const brakeRotor = new THREE.Mesh(
-                        new THREE.CylinderGeometry(0.21, 0.21, 0.03, 18).rotateZ(Math.PI / 2),
+                        new THREE.CylinderGeometry(0.20, 0.20, 0.028, 18).rotateZ(Math.PI / 2),
                         rotorMat
                     );
                     brakeRotor.position.set(-sideSign * 0.05, 0, 0);
@@ -2209,14 +2485,12 @@
                     this.fallbackWheels.push(fbWheel);
                 });
 
-                // Headlight SpotLight
                 this.headlightSpot = new THREE.SpotLight(0xfff8e7, 3.5, 48, Math.PI / 4, 0.45, 1.5);
                 this.headlightSpot.position.set(0, 1.10, 2.55);
                 this.headlightSpot.target.position.set(0, 0.1, 18);
                 this.chassisGroup.add(this.headlightSpot);
                 this.chassisGroup.add(this.headlightSpot.target);
 
-                // Working Brake / Reverse Tail-Lamp Glow & Twin Nitrous Exhaust Flame Cones!
                 this.brakeLightMat = new THREE.MeshBasicMaterial({ color: 0x550000 });
                 [-0.82, 0.82].forEach((xOff) => {
                     const tailLamp = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.26, 0.05), this.brakeLightMat);
@@ -2224,7 +2498,6 @@
                     this.chassisGroup.add(tailLamp);
                 });
 
-                // Twin Blue/Orange Nitrous Exhaust Flame Cones at the rear tailpipes
                 const flameGeo = new THREE.ConeGeometry(0.11, 0.85, 10);
                 flameGeo.rotateX(-Math.PI / 2);
                 this.nitroFlameMat = new THREE.MeshBasicMaterial({
@@ -2248,7 +2521,7 @@
             initCannonRigidBody(startX, startY, startZ) {
                 if (!this.cannonEngine || !this.cannonEngine.hasCannon) return;
                 this.chassisBody = new CANNON.Body({
-                    mass: 1650,
+                    mass: 2100, // Real Toyota Hilux 2.8L GD-6 4x4 curb weight!
                     linearDamping: 0.05,
                     angularDamping: 0.4
                 });
@@ -2314,12 +2587,14 @@
                 chassisMat.roughness = 0.26;
                 chassisMat.metalness = 0.35;
                 chassisMat.envMapIntensity = 1.45;
+                chassisMat.side = THREE.DoubleSide;
                 chassisMat.needsUpdate = true;
 
                 const wheelMat = srcMat.clone();
                 wheelMat.roughness = 0.48;
                 wheelMat.metalness = 0.22;
                 wheelMat.envMapIntensity = 1.15;
+                wheelMat.side = THREE.DoubleSide;
                 wheelMat.needsUpdate = true;
 
                 const posAttr = geom.attributes.position;
@@ -2440,8 +2715,16 @@
                 this.lateralSpeed = 0;
                 this.isAirborne = false;
                 this.prevGroundPlaneY = ry;
+                this.wheelContactY = [ry, ry, ry, ry];
+                this.wheelContactVelY = [0, 0, 0, 0];
+                this.wheelPrevSlope = [0, 0, 0, 0];
+                this.wheelGrounded = [true, true, true, true];
+                this.chassisHeave = -0.025;
+                this.chassisHeaveVel = 0;
                 this.chassisPitch = 0;
+                this.chassisPitchVel = 0;
                 this.chassisRoll = 0;
+                this.chassisRollVel = 0;
                 if (this.chassisBody) {
                     this.chassisBody.position.set(rx, ry, rz);
                     this.chassisBody.velocity.set(0, 0, 0);
@@ -2479,7 +2762,7 @@
                         this.vehicleGroup.position.x - oldPos.x,
                         this.vehicleGroup.position.z - oldPos.z,
                         this.vehicleGroup.position.y - oldPos.y,
-                        1.75
+                        1.38
                     );
                 }
             }
@@ -2492,6 +2775,7 @@
                 const driveBtn = document.getElementById('driveButton');
                 const stuntBanner = document.getElementById('stunt-banner');
                 const mode = this.drivingModes[this.currentModeIndex];
+                const camPreset = this.cameraViews[this.currentCamViewIndex];
 
                 const moveVec = inputManager.getMovementVector();
                 const isBoost = inputManager.isRunning();
@@ -2500,7 +2784,6 @@
                 const throttle = this.isDriving ? moveVec.y : 0; // +1 Front/Gas, -1 Back/Brake-Rev
                 const steerInput = this.isDriving ? -moveVec.x : 0; // +1 Left, -1 Right
 
-                // Twin Nitrous Exhaust Flame visual + dynamic FOV speed warp
                 const activeNitro = this.isDriving && isBoost && throttle > 0.1;
                 if (this.nitroFlames) {
                     this.nitroFlames.visible = activeNitro;
@@ -2512,7 +2795,6 @@
                     }
                 }
 
-                // Working Brake / Reverse Tail Lamps
                 if (this.brakeLightMat) {
                     const isBrakingNow = this.isDriving && (handbrake || (throttle < -0.1 && this.forwardSpeed > 0.5));
                     const isReversingNow = this.isDriving && (throttle < -0.1 && this.forwardSpeed <= 0.5);
@@ -2529,51 +2811,72 @@
                 const prevForwardSpeed = this.forwardSpeed;
 
                 // 1. Speed-Sensitive Ackermann Steering
-                const speedRatio = Math.min(1.0, Math.abs(this.forwardSpeed) / 32.0);
-                const maxSteerAtSpeed = this.maxSteerAngle * (1.0 - speedRatio * 0.45);
-                this.steeringAngle = THREE.MathUtils.lerp(this.steeringAngle, steerInput * maxSteerAtSpeed, 12 * delta);
+                const speedRatio = Math.min(1.0, Math.abs(this.forwardSpeed) / 28.0);
+                const maxSteerAtSpeed = this.maxSteerAngle * (1.0 - speedRatio * 0.48);
+                this.steeringAngle = THREE.MathUtils.lerp(this.steeringAngle, steerInput * maxSteerAtSpeed, 10 * delta);
 
                 this.wheelSteerPivots[0].rotation.y = this.steeringAngle * (this.steeringAngle > 0 ? 1.08 : 0.92);
                 this.wheelSteerPivots[1].rotation.y = this.steeringAngle * (this.steeringAngle < 0 ? 1.08 : 0.92);
 
-                // 2. MULTI-MODE ENGINE TORQUE, BRAKING SLIP/SKID & LATERAL DRIFT PHYSICS
-                const maxFwd = isBoost ? mode.maxSpeed * 1.35 : mode.maxSpeed;
-                const maxRev = -10.5;
+                // =================================================================
+                // 2. REALISTIC 2,100 KG TOYOTA HILUX 2.8L GD-6 TORQUE CURVE,
+                //    PROGRESSIVE GEAR PICKUP, AERODYNAMIC DRAG & SLOPE GRAVITY LOAD!
+                // =================================================================
+                const maxFwd = isBoost ? mode.maxSpeed * 1.28 : mode.maxSpeed;
+                const maxRev = -8.5; // ~30 km/h reverse
                 let hardBrakingSlip = false;
 
-                if (!this.isAirborne) {
+                // Compute current slope angle along vehicle heading for realistic uphill/downhill weight load
+                const aheadGroundY = this.cannonEngine.getSurfaceHeight(pos.x + fwdX * 1.5, pos.z + fwdZ * 1.5);
+                const behindGroundY = this.cannonEngine.getSurfaceHeight(pos.x - fwdX * 1.5, pos.z - fwdZ * 1.5);
+                const slopeSine = THREE.MathUtils.clamp((aheadGroundY - behindGroundY) / 3.0, -0.5, 0.5);
+                // Gravity slope resistance: climbing uphill slows the 2.1-ton truck; going downhill adds gravity pull
+                const slopeGravityAccel = -9.81 * slopeSine * 0.62;
+
+                // Progressive gear torque curve: strong low-gear pull, tapering smoothly as speed builds
+                const speedFrac = Math.min(1.0, Math.abs(this.forwardSpeed) / maxFwd);
+                const torqueMultiplier = Math.max(0.28, 1.0 - 0.68 * Math.pow(speedFrac, 1.15));
+                // Quadratic aerodynamic air drag + rolling resistance
+                const aeroAndRollingDrag = (1.6 + 0.012 * this.forwardSpeed * Math.abs(this.forwardSpeed));
+
+                const anyWheelGrounded = this.wheelGrounded[0] || this.wheelGrounded[1] || this.wheelGrounded[2] || this.wheelGrounded[3];
+                if (anyWheelGrounded) {
                     if (this.isDriving) {
                         if (handbrake) {
-                            hardBrakingSlip = Math.abs(this.forwardSpeed) > 2.0;
-                            const hbDecel = 14.0 * delta;
+                            hardBrakingSlip = Math.abs(this.forwardSpeed) > 2.2;
+                            const hbDecel = 11.5 * delta;
                             if (Math.abs(this.forwardSpeed) > hbDecel) {
                                 this.forwardSpeed -= Math.sign(this.forwardSpeed) * hbDecel;
                             } else {
                                 this.forwardSpeed = 0;
                             }
                         } else if (Math.abs(throttle) > 0.05) {
-                            if (throttle > 0 && this.forwardSpeed < -1.2) {
+                            if (throttle > 0 && this.forwardSpeed < -0.8) {
                                 hardBrakingSlip = Math.abs(this.forwardSpeed) > 2.5;
-                                this.forwardSpeed = Math.min(0, this.forwardSpeed + 20.0 * delta);
-                            } else if (throttle < 0 && this.forwardSpeed > 1.2) {
+                                this.forwardSpeed = Math.min(0, this.forwardSpeed + 15.0 * delta);
+                            } else if (throttle < 0 && this.forwardSpeed > 0.8) {
                                 hardBrakingSlip = this.forwardSpeed > 4.5;
-                                this.forwardSpeed = Math.max(0, this.forwardSpeed - 19.0 * delta);
+                                this.forwardSpeed = Math.max(0, this.forwardSpeed - 15.5 * delta);
                             } else if (throttle > 0) {
-                                const accel = isBoost ? mode.accel * 1.48 : mode.accel;
-                                this.forwardSpeed = Math.min(maxFwd, this.forwardSpeed + throttle * accel * delta);
+                                const boostMult = isBoost ? 1.42 : 1.0;
+                                const effectiveAccel = mode.baseAccel * torqueMultiplier * boostMult + slopeGravityAccel;
+                                this.forwardSpeed = Math.min(maxFwd, this.forwardSpeed + Math.max(0.8, effectiveAccel) * throttle * delta);
                             } else {
-                                this.forwardSpeed = Math.max(maxRev, this.forwardSpeed + throttle * 10.0 * delta);
+                                const revAccel = (mode.baseAccel * 0.72) * (1.0 - Math.abs(this.forwardSpeed) / Math.abs(maxRev));
+                                this.forwardSpeed = Math.max(maxRev, this.forwardSpeed + throttle * revAccel * delta);
                             }
                         } else {
-                            const drag = 3.6 * delta;
-                            if (Math.abs(this.forwardSpeed) > drag) {
-                                this.forwardSpeed -= Math.sign(this.forwardSpeed) * drag;
+                            // Natural coasting with engine braking + slope gravity
+                            const coastStep = aeroAndRollingDrag * delta;
+                            if (Math.abs(this.forwardSpeed) > coastStep) {
+                                this.forwardSpeed -= Math.sign(this.forwardSpeed) * coastStep;
+                                this.forwardSpeed += slopeGravityAccel * 0.5 * delta;
                             } else {
                                 this.forwardSpeed = 0;
                             }
                         }
                     } else {
-                        this.forwardSpeed = THREE.MathUtils.lerp(this.forwardSpeed, 0, 9 * delta);
+                        this.forwardSpeed = THREE.MathUtils.lerp(this.forwardSpeed, 0, 8 * delta);
                     }
 
                     const activeLateralGrip = (handbrake || hardBrakingSlip) ? mode.driftGrip : mode.lateralGrip;
@@ -2593,19 +2896,20 @@
                     const newFwdZ = Math.cos(this.yaw);
                     const newRightX = Math.cos(this.yaw);
                     const newRightZ = -Math.sin(this.yaw);
-                    const slipInject = -this.forwardSpeed * this.yawRate * ((handbrake || hardBrakingSlip || this.currentModeIndex === 1) ? 0.28 : 0.05) * delta;
+                    const slipInject = -this.forwardSpeed * this.yawRate * ((handbrake || hardBrakingSlip || this.currentModeIndex === 1) ? 0.26 : 0.04) * delta;
                     this.lateralSpeed += slipInject;
 
                     this.velX = newFwdX * this.forwardSpeed + newRightX * this.lateralSpeed;
                     this.velZ = newFwdZ * this.forwardSpeed + newRightZ * this.lateralSpeed;
                 } else {
-                    // Mid-Air Attitude Control (Tilt pitch with Front/Back, roll/yaw with Left/Right while jumping!)
-                    this.yaw += (this.yawRate * 0.35 + steerInput * 0.85) * delta;
-                    this.airPitch = THREE.MathUtils.clamp(this.airPitch - throttle * 0.95 * delta, -0.65, 0.65);
-                    this.airRoll = THREE.MathUtils.clamp(this.airRoll + steerInput * 1.25 * delta, -0.75, 0.75);
+                    this.yaw += (this.yawRate * 0.35 + steerInput * 0.75) * delta;
                 }
 
-                this.isSkidding = !this.isAirborne && (hardBrakingSlip || Math.abs(this.lateralSpeed) > 2.0);
+                this.isSkidding = !this.isAirborne && (hardBrakingSlip || Math.abs(this.lateralSpeed) > 2.2);
+                if (this.isSkidding && this.isDriving) {
+                    addStuntScore(delta * 45, null);
+                }
+
                 const longitudinalG = (this.forwardSpeed - prevForwardSpeed) / Math.max(0.001, delta);
                 const lateralG = this.forwardSpeed * this.yawRate;
 
@@ -2620,11 +2924,19 @@
                     this.velX *= 0.35;
                     this.velZ *= 0.35;
                     this.forwardSpeed *= 0.35;
+                    this.chassisPitchVel += 0.5;
                 }
                 pos.x = col.position.x;
                 pos.z = col.position.z;
 
-                // 4. SAMPLE EXACT GROUND HEIGHT AT ALL 4 WHEELS & COMPUTE BALLISTIC RAMP/SLOPE JUMPS!
+                // =================================================================
+                // 4. 4-WHEEL NEWTONIAN BALLISTIC GRAVITY & DOWNHILL DROP-OFF SOLVER
+                //    - Ground can ONLY push UP (N >= 0); it NEVER pulls the car down!
+                //    - When driving from flat/plain terrain onto a downward slope at
+                //      any speed, each wheel & the chassis follow a real ballistic
+                //      gravity parabola (y = y0 + vy*t - 0.5*g*t^2) instead of
+                //      sticking/gluing downward to the descending terrain!
+                // =================================================================
                 const curFwdX = Math.sin(this.yaw);
                 const curFwdZ = Math.cos(this.yaw);
                 const curRightX = Math.cos(this.yaw);
@@ -2634,81 +2946,224 @@
                 const wheelWorldZ = [0, 0, 0, 0];
                 const wheelGroundY = [0, 0, 0, 0];
 
+                const horizSpeed = Math.hypot(this.velX, this.velZ);
+                const moveDirX = horizSpeed > 0.15 ? (this.velX / horizSpeed) : curFwdX;
+                const moveDirZ = horizSpeed > 0.15 ? (this.velZ / horizSpeed) : curFwdZ;
+
+                let maxLandingImpact = 0;
+                let frontLandedImpact = 0;
+                let rearLandedImpact = 0;
+
                 for (let w = 0; w < 4; w++) {
                     const ws = this.wheelSpecs[w];
                     wheelWorldX[w] = pos.x + curRightX * ws.x + curFwdX * ws.z;
                     wheelWorldZ[w] = pos.z + curRightZ * ws.x + curFwdZ * ws.z;
                     wheelGroundY[w] = this.cannonEngine.getSurfaceHeight(wheelWorldX[w], wheelWorldZ[w]);
+
+                    // Compute local terrain slope AND macroscopic look-ahead brow curvature
+                    // along actual horizontal travel vector so smooth flat-to-downhill transitions
+                    // never glue the car downward to the descending slope!
+                    const hAhead = this.cannonEngine.getSurfaceHeight(wheelWorldX[w] + moveDirX * 0.35, wheelWorldZ[w] + moveDirZ * 0.35);
+                    const hBehind = this.cannonEngine.getSurfaceHeight(wheelWorldX[w] - moveDirX * 0.35, wheelWorldZ[w] - moveDirZ * 0.35);
+                    const wheelSlope = (hAhead - hBehind) / 0.70;
+                    const groundVertVel = horizSpeed * wheelSlope;
+                    const slopeDrop = this.wheelPrevSlope[w] - wheelSlope;
+                    this.wheelPrevSlope[w] = wheelSlope;
+
+                    const hMacroBehind = this.cannonEngine.getSurfaceHeight(wheelWorldX[w] - moveDirX * 1.6, wheelWorldZ[w] - moveDirZ * 1.6);
+                    const hMacroAhead = this.cannonEngine.getSurfaceHeight(wheelWorldX[w] + moveDirX * 2.2, wheelWorldZ[w] + moveDirZ * 2.2);
+                    const slopeBehind = (wheelGroundY[w] - hMacroBehind) / 1.6;
+                    const slopeAhead = (hMacroAhead - wheelGroundY[w]) / 2.2;
+                    const macroBrowDrop = slopeBehind - slopeAhead;
+
+                    // 1. Macroscopic Flat-to-Downhill Brow / Crest Detachment:
+                    // When driving on flat/gentle terrain (slopeBehind >= -0.05) and entering a downward
+                    // terrain slope (slopeAhead < -0.035, macroBrowDrop > 0.042), unload coilover springs
+                    // and launch into a true ballistic gravity arc over the downward slope!
+                    if (this.wheelGrounded[w] && horizSpeed > 2.0 && macroBrowDrop > 0.042 && slopeAhead < -0.035 && slopeBehind >= -0.06) {
+                        const browLaunchVy = Math.max(0, horizSpeed * slopeBehind) +
+                            Math.min(3.2, horizSpeed * macroBrowDrop * 0.52 * mode.jumpBoost);
+                        if (browLaunchVy > groundVertVel + 0.25) {
+                            this.wheelContactVelY[w] = Math.max(this.wheelContactVelY[w], browLaunchVy);
+                            this.wheelContactY[w] = Math.max(this.wheelContactY[w], wheelGroundY[w] + 0.012);
+                            this.wheelGrounded[w] = false;
+                        }
+                    } else if (this.wheelGrounded[w] && slopeDrop > 0.015 && horizSpeed > 1.2) {
+                        const reboundImpulse = Math.min(2.4, horizSpeed * slopeDrop * 0.38 * mode.jumpBoost);
+                        this.wheelContactVelY[w] = Math.max(this.wheelContactVelY[w], groundVertVel + reboundImpulse);
+                    }
+
+                    // While the opposite axle is still supported on flat ground, chassis rotational
+                    // inertia + spring rebound resist sudden nose-drop over a downhill brow
+                    const otherAxleGrounded = ws.front
+                        ? (this.wheelGrounded[2] || this.wheelGrounded[3])
+                        : (this.wheelGrounded[0] || this.wheelGrounded[1]);
+                    const effectiveGravity = (otherAxleGrounded && horizSpeed > 2.0) ? 5.2 : 9.81;
+
+                    this.wheelContactVelY[w] -= effectiveGravity * delta;
+                    const predictedWheelY = this.wheelContactY[w] + this.wheelContactVelY[w] * delta;
+
+                    if (predictedWheelY <= wheelGroundY[w] + 0.003) {
+                        // Wheel reaches or presses into the ground: ground normal force pushes UP
+                        const impactSpeed = groundVertVel - this.wheelContactVelY[w];
+                        if (!this.wheelGrounded[w] && impactSpeed > 1.2) {
+                            maxLandingImpact = Math.max(maxLandingImpact, impactSpeed);
+                            if (ws.front) frontLandedImpact = Math.max(frontLandedImpact, impactSpeed);
+                            else rearLandedImpact = Math.max(rearLandedImpact, impactSpeed);
+                        }
+                        this.wheelContactY[w] = wheelGroundY[w];
+                        if (groundVertVel > 0) {
+                            this.wheelContactVelY[w] = Math.max(this.wheelContactVelY[w], groundVertVel * mode.jumpBoost);
+                        } else {
+                            this.wheelContactVelY[w] = groundVertVel;
+                        }
+                        this.wheelGrounded[w] = true;
+                    } else {
+                        // Ground dropped below the wheel ballistic trajectory (downhill brow or jump)!
+                        // Never stick downward to the terrain — follow true Newtonian free-fall parabola!
+                        this.wheelContactY[w] = predictedWheelY;
+                        this.wheelGrounded[w] = false;
+                    }
                 }
 
+                // Subtle mid-air pitch attitude control when all 4 wheels are airborne
+                const airborneCount = (!this.wheelGrounded[0] ? 1 : 0) + (!this.wheelGrounded[1] ? 1 : 0) +
+                                      (!this.wheelGrounded[2] ? 1 : 0) + (!this.wheelGrounded[3] ? 1 : 0);
+                if (airborneCount === 4) {
+                    const airPitchDelta = (-throttle * 0.55) * delta;
+                    this.wheelContactY[0] -= airPitchDelta;
+                    this.wheelContactY[1] -= airPitchDelta;
+                    this.wheelContactY[2] += airPitchDelta;
+                    this.wheelContactY[3] += airPitchDelta;
+                }
+
+                // Keep front-to-rear chassis pitch within physical rigid-body bounds
                 const wheelbase = 3.027;
-                const trackWidth = 1.650;
+                const maxAxleDiff = wheelbase * 0.48;
+                const curFrontY = 0.5 * (this.wheelContactY[0] + this.wheelContactY[1]);
+                const curRearY = 0.5 * (this.wheelContactY[2] + this.wheelContactY[3]);
+                if (Math.abs(curFrontY - curRearY) > maxAxleDiff) {
+                    const excess = (curFrontY - curRearY) - Math.sign(curFrontY - curRearY) * maxAxleDiff;
+                    this.wheelContactY[0] -= excess * 0.5;
+                    this.wheelContactY[1] -= excess * 0.5;
+                    this.wheelContactY[2] += excess * 0.5;
+                    this.wheelContactY[3] += excess * 0.5;
+                }
+
+                // Construct 3D vehicle orientation basis from the 4 gravity-governed wheel trajectories!
+                _vecX.set(
+                    0.5 * (wheelWorldX[1] + wheelWorldX[3]) - 0.5 * (wheelWorldX[0] + wheelWorldX[2]),
+                    0.5 * (this.wheelContactY[1] + this.wheelContactY[3]) - 0.5 * (this.wheelContactY[0] + this.wheelContactY[2]),
+                    0.5 * (wheelWorldZ[1] + wheelWorldZ[3]) - 0.5 * (wheelWorldZ[0] + wheelWorldZ[2])
+                ).normalize();
+
+                _vecZ.set(
+                    0.5 * (wheelWorldX[0] + wheelWorldX[1]) - 0.5 * (wheelWorldX[2] + wheelWorldX[3]),
+                    0.5 * (this.wheelContactY[0] + this.wheelContactY[1]) - 0.5 * (this.wheelContactY[2] + this.wheelContactY[3]),
+                    0.5 * (wheelWorldZ[0] + wheelWorldZ[1]) - 0.5 * (wheelWorldZ[2] + wheelWorldZ[3])
+                ).normalize();
+
+                _vecY.crossVectors(_vecZ, _vecX).normalize();
+                _vecX.crossVectors(_vecY, _vecZ).normalize();
+                _vecZ.crossVectors(_vecX, _vecY).normalize();
+
+                _mat4.makeBasis(_vecX, _vecY, _vecZ);
+                _quat1.setFromRotationMatrix(_mat4);
+
                 const frontGroundY = 0.5 * (wheelGroundY[0] + wheelGroundY[1]);
                 const rearGroundY = 0.5 * (wheelGroundY[2] + wheelGroundY[3]);
-                const leftGroundY = 0.5 * (wheelGroundY[0] + wheelGroundY[2]);
-                const rightGroundY = 0.5 * (wheelGroundY[1] + wheelGroundY[3]);
+                const linearGroundPlaneY = rearGroundY + (frontGroundY - rearGroundY) * (1.407 / wheelbase);
+                const centerBellyY = this.cannonEngine.getSurfaceHeight(pos.x, pos.z);
+                const frontOverhangY = this.cannonEngine.getSurfaceHeight(pos.x + curFwdX * 2.35, pos.z + curFwdZ * 2.35) - 0.22;
+                const groundPlaneYAtOrigin = Math.max(linearGroundPlaneY, centerBellyY - 0.12, frontOverhangY);
 
-                const groundPlaneYAtOrigin = rearGroundY + (frontGroundY - rearGroundY) * (1.407 / wheelbase);
-                const terrainPitch = Math.atan2(rearGroundY - frontGroundY, wheelbase);
-                const terrainRoll = Math.atan2(leftGroundY - rightGroundY, trackWidth);
+                const frontContactY = 0.5 * (this.wheelContactY[0] + this.wheelContactY[1]);
+                const rearContactY = 0.5 * (this.wheelContactY[2] + this.wheelContactY[3]);
+                const contactPlaneYAtOrigin = rearContactY + (frontContactY - rearContactY) * (1.407 / wheelbase);
 
-                // Compute forward slope gradient (dh/ds) along direction of travel so any uphill ramp or slope
-                // imparts true upward launch velocity: v_y = horizontalSpeed * slopeGradient * jumpBoost!
-                const slopeRise = (frontGroundY - rearGroundY) / wheelbase;
-                const slopeVerticalVel = this.forwardSpeed * slopeRise * mode.jumpBoost;
+                pos.y = Math.max(contactPlaneYAtOrigin, groundPlaneYAtOrigin);
+                if (groundPlaneYAtOrigin > contactPlaneYAtOrigin) {
+                    const lift = groundPlaneYAtOrigin - contactPlaneYAtOrigin;
+                    for (let w = 0; w < 4; w++) this.wheelContactY[w] += lift;
+                }
+
+                this.velY = 0.25 * (
+                    this.wheelContactVelY[0] + this.wheelContactVelY[1] +
+                    this.wheelContactVelY[2] + this.wheelContactVelY[3]
+                );
+
                 const finiteDiffRate = (groundPlaneYAtOrigin - this.prevGroundPlaneY) / Math.max(0.001, delta);
+                const groundVertAccel = (finiteDiffRate - this.prevSlopeVertVel) / Math.max(0.001, delta);
                 this.prevGroundPlaneY = groundPlaneYAtOrigin;
+                this.prevSlopeVertVel = finiteDiffRate;
 
-                if (!this.isAirborne) {
-                    const launchVy = Math.max(slopeVerticalVel, finiteDiffRate);
-                    const predictedY = pos.y + this.velY * delta - 0.5 * 14.8 * delta * delta;
-                    if (this.velY > 1.0 && predictedY > groundPlaneYAtOrigin + 0.045) {
-                        // Launch into Ballistic Jump!
+                // 5. AIRTIME TRACKING & HEAVY 2,100 KG LANDING WEIGHT COMPRESSION
+                const centerAirGap = pos.y - linearGroundPlaneY;
+                const isCurrentlyFlying = (airborneCount >= 2 && centerAirGap > 0.035) || centerAirGap > 0.10;
+
+                if (isCurrentlyFlying) {
+                    if (!this.isAirborne) {
                         this.isAirborne = true;
                         this.airtimeSec = 0;
                         this.jumpStartPos.copy(pos);
-                        this.velY *= mode.jumpBoost;
-                        this.airPitch = terrainPitch;
-                        this.airRoll = terrainRoll;
-                        pos.y = predictedY;
-                    } else {
-                        pos.y = groundPlaneYAtOrigin;
-                        this.velY = THREE.MathUtils.lerp(this.velY, launchVy, 0.72);
+                        this.chassisHeaveVel += 0.65;
                     }
-                } else {
-                    // Airborne Ballistic Flight!
                     this.airtimeSec += delta;
-                    this.velY -= 14.8 * delta;
-                    pos.y += this.velY * delta;
-                    this.airPitch = THREE.MathUtils.lerp(this.airPitch, Math.min(0.28, -this.velY * 0.022), 1.8 * delta);
-
                     const jumpDist = Math.hypot(pos.x - this.jumpStartPos.x, pos.z - this.jumpStartPos.z);
-                    stuntBanner.style.display = 'block';
-                    stuntBanner.textContent = `🚀 AIRTIME: ${this.airtimeSec.toFixed(1)}s | JUMP DISTANCE: ${jumpDist.toFixed(1)}m`;
+                    if (this.airtimeSec > 0.16 || centerAirGap > 0.18) {
+                        stuntBanner.style.display = `block`;
+                        stuntBanner.textContent = `🚀 AIRTIME: ${this.airtimeSec.toFixed(1)}s | JUMP DISTANCE: ${jumpDist.toFixed(1)}m`;
+                    }
+                } else if (this.isAirborne) {
+                    this.isAirborne = false;
+                    const jumpDist = Math.hypot(pos.x - this.jumpStartPos.x, pos.z - this.jumpStartPos.z);
+                    if (jumpDist > 3.5 && this.airtimeSec > 0.20) {
+                        addStuntScore(jumpDist * 25, `🚀 ${jumpDist.toFixed(1)}m STUNT JUMP`);
+                    }
+                    setTimeout(() => {
+                        if (!this.isAirborne) stuntBanner.style.display = `none`;
+                    }, 1800);
+                }
 
-                    if (pos.y <= groundPlaneYAtOrigin) {
-                        pos.y = groundPlaneYAtOrigin;
-                        this.isAirborne = false;
-                        const impactSpeed = Math.abs(this.velY);
-                        carSound.playLandingThud(impactSpeed);
-                        this.chassisPitchVel += (this.airPitch - terrainPitch) * 6.5;
-                        this.velY = slopeVerticalVel;
-                        if (impactSpeed > 3.0) {
-                            for (let w = 0; w < 4; w++) {
+                if (maxLandingImpact > 1.2) {
+                    carSound.playLandingThud(maxLandingImpact);
+                    this.chassisHeaveVel -= Math.min(3.8, maxLandingImpact * 0.42);
+                    const pitchImpulse = (frontLandedImpact - rearLandedImpact * 0.65) * 0.18;
+                    this.chassisPitchVel += THREE.MathUtils.clamp(pitchImpulse, -2.2, 2.4);
+                    if (maxLandingImpact > 2.5) {
+                        for (let w = 0; w < 4; w++) {
+                            if (this.wheelGrounded[w]) {
                                 this.spawnSkidAndSmoke(wheelWorldX[w], wheelGroundY[w], wheelWorldZ[w], this.yaw);
                             }
                         }
-                        setTimeout(() => {
-                            if (!this.isAirborne) stuntBanner.style.display = 'none';
-                        }, 1600);
                     }
                 }
 
-                const activePitch = this.isAirborne ? this.airPitch : terrainPitch;
-                const activeRoll = this.isAirborne ? this.airRoll : terrainRoll;
-                _euler1.set(activePitch, this.yaw, activeRoll, 'YXZ');
-                this.vehicleGroup.quaternion.setFromEuler(_euler1);
+                this.smoothedGroundQuat.slerp(_quat1, Math.min(1, 16 * delta));
+                this.vehicleGroup.quaternion.copy(this.smoothedGroundQuat);
                 this.vehicleGroup.updateMatrixWorld(true);
+
+                // =================================================================
+                // 6. HARD BUMP-STOP LIFT + EXACT LOCAL-SPACE WHEEL GROUND PLANTING
+                //    Guarantees NO wheel can ever sink into a slope end or ramp!
+                // =================================================================
+                const maxBumpY = 0.405 + 0.16;
+                const minDroopY = 0.405 - 0.16;
+                if (!this.isAirborne) {
+                    let maxExcessBump = 0;
+                    for (let w = 0; w < 4; w++) {
+                        _v2.set(wheelWorldX[w], wheelGroundY[w], wheelWorldZ[w]);
+                        this.vehicleGroup.worldToLocal(_v2);
+                        const neededY = _v2.y + this.wheelRadius;
+                        if (neededY > maxBumpY) {
+                            maxExcessBump = Math.max(maxExcessBump, neededY - maxBumpY);
+                        }
+                    }
+                    if (maxExcessBump > 0) {
+                        pos.y += maxExcessBump;
+                        this.vehicleGroup.updateMatrixWorld(true);
+                    }
+                }
 
                 if (this.contactShadow) {
                     const airGap = Math.max(0, pos.y - groundPlaneYAtOrigin);
@@ -2716,17 +3171,24 @@
                     this.contactShadow.material.opacity = Math.max(0.15, 0.85 - airGap * 0.20);
                 }
 
-                // 5. DYNAMIC CHASSIS PITCH, ROLL & MODE RIDE-HEIGHT OFFSET
-                const targetDynamicPitch = this.isAirborne ? 0 : THREE.MathUtils.clamp(-longitudinalG * 0.0052, -0.075, 0.075);
-                const targetDynamicRoll = this.isAirborne ? 0 : THREE.MathUtils.clamp(lateralG * 0.0060, -0.090, 0.090);
+                // 7. HEAVY 2,100 KG CHASSIS WEIGHT SYSTEM (Heave + Pitch + Roll)
+                const staticWeightSag = -0.025 + mode.rideHeightOffset;
+                const targetHeave = this.isAirborne ? (staticWeightSag + 0.05) : staticWeightSag;
+                const terrainImpulse = this.isAirborne ? 0 : THREE.MathUtils.clamp(-groundVertAccel * 0.018, -0.8, 0.8);
+                const heaveForce = (targetHeave - this.chassisHeave) * mode.heaveStiffness - this.chassisHeaveVel * mode.heaveDamping + terrainImpulse;
+                this.chassisHeaveVel += heaveForce * delta;
+                this.chassisHeave = THREE.MathUtils.clamp(this.chassisHeave + this.chassisHeaveVel * delta, -0.15, 0.12);
 
-                this.chassisPitchVel += ((targetDynamicPitch - this.chassisPitch) * 60.0 - this.chassisPitchVel * 10.5) * delta;
+                const targetDynamicPitch = this.isAirborne ? 0 : THREE.MathUtils.clamp(-longitudinalG * 0.0062, -0.085, 0.085);
+                const targetDynamicRoll = this.isAirborne ? 0 : THREE.MathUtils.clamp(-lateralG * 0.0062, -0.095, 0.095);
+
+                this.chassisPitchVel += ((targetDynamicPitch - this.chassisPitch) * 58.0 - this.chassisPitchVel * 9.5) * delta;
                 this.chassisPitch += this.chassisPitchVel * delta;
 
-                this.chassisRollVel += ((targetDynamicRoll - this.chassisRoll) * mode.rollStiffness - this.chassisRollVel * 11.5) * delta;
+                this.chassisRollVel += ((targetDynamicRoll - this.chassisRoll) * mode.rollStiffness - this.chassisRollVel * 10.5) * delta;
                 this.chassisRoll += this.chassisRollVel * delta;
 
-                this.chassisGroup.position.y = THREE.MathUtils.lerp(this.chassisGroup.position.y, mode.rideHeightOffset, 8 * delta);
+                this.chassisGroup.position.y = this.chassisHeave;
                 this.chassisGroup.rotation.x = this.chassisPitch;
                 this.chassisGroup.rotation.z = this.chassisRoll;
 
@@ -2741,9 +3203,9 @@
                     this.chassisBody.velocity.set(this.velX, this.velY, this.velZ);
                 }
 
-                // 6. EXACT LOCAL-SPACE WHEEL GROUND PLANTING & SHOCKER COMPRESSION
+                // 8. UPDATE 4 WHEELS & 3D COILOVER SHOCKERS
                 const angularVel = (this.forwardSpeed / this.wheelRadius) +
-                    ((this.isDriving && Math.abs(this.forwardSpeed) < 1.2) ? throttle * 3.5 : 0);
+                    ((this.isDriving && Math.abs(this.forwardSpeed) < 1.2) ? throttle * 3.0 : 0);
                 const wheelRpm = Math.round(Math.abs(angularVel) * 60 / (Math.PI * 2));
                 document.getElementById('wheelRpm').textContent = wheelRpm + ' RPM';
 
@@ -2757,27 +3219,25 @@
                     this.vehicleGroup.worldToLocal(_v2);
 
                     const exactPlantedLocalY = _v2.y + this.wheelRadius;
-                    const minDroopY = ws.y - 0.18;
-                    const maxBumpY = ws.y + 0.20;
-
-                    const targetWheelY = this.isAirborne
-                        ? THREE.MathUtils.lerp(this.wheelSteerPivots[w].position.y, Math.max(minDroopY, exactPlantedLocalY), 14 * delta)
-                        : THREE.MathUtils.clamp(exactPlantedLocalY, minDroopY, maxBumpY);
+                    const clampedLocalY = THREE.MathUtils.clamp(exactPlantedLocalY, minDroopY, maxBumpY);
+                    const targetWheelY = !this.wheelGrounded[w]
+                        ? THREE.MathUtils.lerp(this.wheelSteerPivots[w].position.y, clampedLocalY, Math.min(1, 18 * delta))
+                        : clampedLocalY;
 
                     this.wheelSteerPivots[w].position.set(ws.x, targetWheelY, ws.z);
 
-                    const chassisCornerDrop = -Math.sin(this.chassisPitch) * ws.z + Math.sin(this.chassisRoll) * ws.x;
-                    const shockerTravel = (targetWheelY - ws.y) - chassisCornerDrop - this.chassisGroup.position.y;
+                    const chassisCornerHeight = this.chassisHeave - Math.sin(this.chassisPitch) * ws.z + Math.sin(this.chassisRoll) * ws.x;
+                    const shockerTravel = (targetWheelY - ws.y) - chassisCornerHeight;
                     this.wheelCompression[w] = shockerTravel;
 
                     const shocker = this.shockers[w];
                     if (shocker) {
-                        const currentStrutLen = THREE.MathUtils.clamp(shocker.baseRestLen - shockerTravel, 0.22, 0.64);
+                        const currentStrutLen = THREE.MathUtils.clamp(shocker.baseRestLen - shockerTravel, 0.20, 0.62);
                         shocker.springGroup.scale.y = currentStrutLen / shocker.baseRestLen;
                         shocker.controlArm.position.y = -currentStrutLen + 0.02;
                         shocker.controlArm.rotation.z = (ws.x < 0 ? 1 : -1) * (shockerTravel * 1.45);
 
-                        const compPct = Math.round(THREE.MathUtils.clamp((1.0 - shockerTravel / 0.20) * 100, 30, 140));
+                        const compPct = Math.round(THREE.MathUtils.clamp((1.0 - shockerTravel / 0.18) * 100, 25, 145));
                         const el = document.getElementById(ws.id);
                         if (el) el.textContent = compPct + '%';
                     }
@@ -2792,34 +3252,59 @@
                     this.wheelSpinners[w].rotation.x = this.wheelSpinAngles[w];
                 }
 
-                // 7. Update Gearbox, Audio, Camera FOV Speed-Warp & Telemetry
+                // =================================================================
+                // 9. 6-SPEED GEARBOX, AUDIO & EXACT CAR-POINT ORBIT FOLLOW CAMERA!
+                // =================================================================
                 const totalSpeedMps = Math.hypot(this.velX, this.velZ);
                 const kmh = Math.round(totalSpeedMps * 3.6);
                 if (this.forwardSpeed < -0.3) {
                     this.currentGear = 'R';
-                    this.engineRpm = Math.round(950 + Math.min(4800, kmh * 135));
+                    this.engineRpm = Math.round(900 + Math.min(3600, kmh * 115));
                 } else if (kmh === 0 && Math.abs(throttle) < 0.05) {
                     this.currentGear = 'N';
-                    this.engineRpm = 850;
+                    this.engineRpm = 800;
                 } else {
-                    const gearnum = kmh < 20 ? 1 : (kmh < 42 ? 2 : (kmh < 68 ? 3 : (kmh < 92 ? 4 : 5)));
+                    const gearnum = kmh < 18 ? 1 : (kmh < 35 ? 2 : (kmh < 54 ? 3 : (kmh < 74 ? 4 : (kmh < 94 ? 5 : 6))));
                     this.currentGear = 'D' + gearnum;
-                    const gearMinKmh = [0, 0, 18, 38, 62, 85][gearnum];
-                    const gearSpan = [22, 22, 26, 30, 32, 40][gearnum];
-                    this.engineRpm = Math.round(1400 + ((kmh - gearMinKmh) / gearSpan) * 4400 + Math.abs(throttle) * 450);
+                    const gearMinKmh = [0, 0, 16, 32, 50, 70, 90][gearnum];
+                    const gearSpan = [18, 18, 20, 22, 24, 26, 35][gearnum];
+                    this.engineRpm = Math.round(1250 + ((kmh - gearMinKmh) / gearSpan) * 2900 + Math.abs(throttle) * 350);
                 }
 
                 carSound.update(this.isDriving, this.engineRpm, this.isSkidding, activeNitro);
 
                 if (this.isDriving && characterController) {
-                    // Dynamic Speed-FOV Warp for exhilarating high-speed & Nitro feel!
-                    const targetFov = 45 + Math.min(14, (kmh / 110) * 10 + (activeNitro ? 4 : 0));
+                    const targetFov = 45 + Math.min(12, (kmh / 110) * 9 + (activeNitro ? 3.5 : 0));
                     camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 6 * delta);
                     camera.updateProjectionMatrix();
 
+                    // Lock camera orbit target onto the EXACT center point of the Toyota Hilux!
                     characterController.model.position.copy(pos);
-                    characterController.updateCameraTarget(pos.x - oldX, pos.z - oldZ, pos.y - oldY, 1.75);
-                    characterController.updateCameraDistance(delta, 5.2, 1.75);
+                    characterController.updateCameraTarget(pos.x - oldX, pos.z - oldZ, pos.y - oldY, camPreset.height);
+
+                    // Auto-Follow Orbit Alignment (like GTA V / Forza Horizon):
+                    // You can freely orbit 360° around the exact car center point with mouse/touch at any time.
+                    // When not actively dragging the mouse/touch for 1.4s and the car is moving, the camera
+                    // smoothly rotates around the car center point to follow behind the car's driving direction!
+                    const timeSinceUserOrbit = (performance.now() - lastUserOrbitTime) * 0.001;
+                    if (camPreset.autoAlign && !isUserDraggingOrbit && timeSinceUserOrbit > 1.4 && Math.abs(this.forwardSpeed) > 0.8) {
+                        const carPivot = characterController.cameraTarget;
+                        const camOffset = _v3.copy(camera.position).sub(carPivot);
+                        const horizDist = Math.hypot(camOffset.x, camOffset.z);
+                        if (horizDist > 0.05) {
+                            const currentCamAngle = Math.atan2(camOffset.x, camOffset.z);
+                            // Behind the car is opposite of forward (+yaw), or in front when reversing
+                            const desiredCamAngle = this.forwardSpeed >= -0.5 ? (this.yaw + Math.PI) : this.yaw;
+                            // Shortest angular difference
+                            let angleDiff = ((desiredCamAngle - currentCamAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+                            const alignSpeed = camPreset.dist < 1.0 ? 10.0 : 2.8;
+                            const newAngle = currentCamAngle + angleDiff * Math.min(1.0, alignSpeed * delta);
+                            camera.position.x = carPivot.x + Math.sin(newAngle) * horizDist;
+                            camera.position.z = carPivot.z + Math.cos(newAngle) * horizDist;
+                        }
+                    }
+
+                    characterController.updateCameraDistance(delta, camPreset.dist, camPreset.height);
                     characterController.updateDebugInfo();
 
                     const tracEl = document.getElementById('hud-traction');
@@ -2838,10 +3323,10 @@
                     document.getElementById('hud-speed').textContent = kmh;
                     document.getElementById('hud-gear').textContent = this.currentGear;
                     document.getElementById('hud-rpm-num').textContent = this.engineRpm;
-                    document.getElementById('rpm-bar').style.width = Math.min(100, Math.round((this.engineRpm / 6500) * 100)) + '%';
+                    document.getElementById('rpm-bar').style.width = Math.min(100, Math.round((this.engineRpm / 4800) * 100)) + '%';
                     document.getElementById('hiluxDistance').textContent = 'DRIVING';
                     banner.style.display = 'block';
-                    banner.textContent = `Toyota Hilux (${kmh} km/h | ${mode.short}) — Use On-Screen Pedals or WASD | [M] Mode | [F] Exit`;
+                    banner.textContent = `Toyota Hilux 2.8L (${kmh} km/h | ${this.currentGear} | ${camPreset.name}) — [WASD/Buttons] Drive | [V] Cam | [F] Exit`;
                     driveBtn.style.display = 'none';
                 } else if (characterController) {
                     const dist = characterController.model.position.distanceTo(pos);
@@ -3073,7 +3558,7 @@
                     this.cameraAdjustSpeed * delta
                 );
                 this.orbitControl.minDistance = this.minCameraDistance;
-                this.orbitControl.maxDistance = customTargetDistance ? 8.5 : this.maxCameraDistance;
+                this.orbitControl.maxDistance = customTargetDistance ? 10.0 : this.maxCameraDistance;
                 this.orbitControl.target = this.cameraTarget;
                 this.orbitControl.object.position.copy(characterHead).addScaledVector(
                     cameraDirection,
@@ -3132,6 +3617,9 @@
         });
         document.getElementById('drive-mode-btn').addEventListener('click', () => {
             if (hiluxSystem) hiluxSystem.cycleDrivingMode();
+        });
+        document.getElementById('cam-view-btn').addEventListener('click', () => {
+            if (hiluxSystem) hiluxSystem.cycleCameraView();
         });
 
         function createArticulatedCharacterFallback() {
@@ -3422,7 +3910,11 @@
             requestAnimationFrame(animate);
             const delta = Math.min(clock.getDelta(), 0.05);
 
-            cannonEngine.step(delta);
+            const activePos = (hiluxSystem && hiluxSystem.isDriving)
+                ? hiluxSystem.vehicleGroup.position
+                : (characterController ? characterController.model.position : _v1);
+
+            cannonEngine.step(delta, activePos);
 
             if (characterController) {
                 characterController.update(delta, inputManager);
@@ -3430,10 +3922,6 @@
             if (hiluxSystem) {
                 hiluxSystem.update(delta, inputManager, characterController);
             }
-
-            const activePos = (hiluxSystem && hiluxSystem.isDriving)
-                ? hiluxSystem.vehicleGroup.position
-                : (characterController ? characterController.model.position : _v1);
 
             if (renderer.shadowMap.enabled && (frameCounter % 5 === 0)) {
                 dirLight.position.set(activePos.x + 35, activePos.y + 75, activePos.z + 30);
